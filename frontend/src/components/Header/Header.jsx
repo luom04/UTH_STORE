@@ -1,52 +1,125 @@
 import { Link } from "react-router-dom";
-import NavBar from "../NavBar/NavBar";
+import { useState } from "react";
+import {
+  Menu,
+  Search,
+  Headphones,
+  MapPin,
+  ClipboardList,
+  ShoppingCart,
+  UserCircle,
+} from "lucide-react";
 
-export default function Header() {
+/**
+ * Header đỏ kiểu GEARVN (dùng lucide-react)
+ * - props.cartCount: số lượng item trong giỏ (mặc định 0)
+ */
+export default function NavBar({ cartCount = 0 }) {
+  const [q, setQ] = useState("");
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    // TODO: điều hướng đến trang tìm kiếm, ví dụ: navigate(`/search?q=${encodeURIComponent(q)}`)
+    console.log("search:", q);
+  };
+
   return (
-    <header className="border-b">
-      {/* top bar đen */}
-      <div className="bg-[#111111] text-white text-sm">
-        <div className="max-w-6xl mx-auto px-3 h-9 flex items-center justify-between">
-          <span>UTH Store — GEARVN style</span>
-          <nav className="flex gap-4">
-            <Link to="/help" className="hover:underline">
-              Hỗ trợ
-            </Link>
-            <Link to="/stores" className="hover:underline">
-              Hệ thống cửa hàng
-            </Link>
-          </nav>
-        </div>
-      </div>
-
-      {/* middle bar: logo + search + actions */}
-      <div className="max-w-6xl mx-auto px-3 h-16 flex items-center gap-4">
-        <Link to="/" className="text-2xl font-bold text-[#e30019]">
+    <div className="bg-[#e30019] text-white">
+      <div className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-3">
+        {/* Logo nếu muốn đặt ở đây (tuỳ bố cục của bạn) */}
+        <Link
+          to="/"
+          className="hidden sm:block text-xl font-extrabold tracking-wide"
+        >
           UTH_STORE
         </Link>
-        <div className="flex-1">
-          <form onSubmit={(e) => e.preventDefault()}>
+
+        {/* Nút Danh mục */}
+        <button
+          type="button"
+          className="hidden sm:flex items-center gap-2 bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.25)] rounded-lg h-10 px-3 transition-colors"
+        >
+          <Menu size={18} />
+          <span className="font-medium">Danh mục</span>
+        </button>
+
+        {/* Ô tìm kiếm lớn */}
+        <form onSubmit={onSubmit} className="flex-1">
+          <div className="relative h-10">
             <input
-              className="w-full border rounded-lg h-10 px-4"
-              placeholder="Bạn cần tìm gì hôm nay? (laptop, chuột, màn hình...)"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Bạn cần tìm gì?"
+              className="w-full h-10 rounded-lg bg-white text-gray-700 placeholder-gray-500 pr-10 pl-3 outline-none"
             />
-          </form>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm hover:text-[#e30019]">
-            Đăng nhập
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-black"
+              aria-label="Tìm kiếm"
+            >
+              <Search size={18} />
+            </button>
+          </div>
+        </form>
+
+        {/* Actions */}
+        <div className="hidden md:flex items-center gap-5 ml-2">
+          <Link
+            to="/hotline"
+            className="flex items-center gap-2 hover:opacity-90"
+          >
+            <Headphones size={18} />
+            <div className="leading-4">
+              <div className="text-xs opacity-80">Hotline</div>
+              <div className="text-sm font-semibold">1900.5301</div>
+            </div>
           </Link>
-          <Link to="/cart" className="relative">
-            <span aria-hidden>🛒</span>
-            <span className="absolute -top-1 -right-2 bg-[#e30019] text-white text-xs rounded-full px-1">
-              0
+
+          <Link
+            to="/stores"
+            className="flex items-center gap-2 hover:opacity-90"
+          >
+            <MapPin size={18} />
+            <div className="leading-4">
+              <div className="text-xs opacity-80">Hệ thống</div>
+              <div className="text-sm font-semibold">Showroom</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/order-tracking"
+            className="flex items-center gap-2 hover:opacity-90"
+          >
+            <ClipboardList size={18} />
+            <div className="leading-4">
+              <div className="text-xs opacity-80">Tra cứu</div>
+              <div className="text-sm font-semibold">đơn hàng</div>
+            </div>
+          </Link>
+
+          <Link
+            to="/cart"
+            className="relative flex items-center gap-2 hover:opacity-90"
+          >
+            <ShoppingCart size={18} />
+            <div className="leading-4">
+              <div className="text-sm font-semibold">Giỏ hàng</div>
+            </div>
+            {/* badge */}
+            <span className="absolute -top-1 -right-2 bg-yellow-300 text-black text-[10px] font-bold rounded-full w-4 h-4 grid place-items-center">
+              {cartCount}
             </span>
+          </Link>
+
+          <Link
+            to="/login"
+            className="flex items-center gap-2 bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.25)] rounded-lg h-10 px-3 transition-colors"
+          >
+            <UserCircle size={18} />
+            <span className="font-medium">Đăng nhập</span>
           </Link>
         </div>
       </div>
-
-      {/* bottom bar: nav đỏ */}
-      <NavBar />
-    </header>
+    </div>
   );
 }
