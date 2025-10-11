@@ -24,7 +24,8 @@ export default function NavBar({ cartCount = 0 }) {
   };
 
   return (
-    <div className="bg-[#e30019] text-white">
+    // 👇 THÊM CÁC CLASS CỐ ĐỊNH VÀO ĐÂY
+    <div className="bg-[#e30019] text-white fixed top-0 left-0 right-0 z-50">
       <div className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-3">
         {/* Logo nếu muốn đặt ở đây (tuỳ bố cục của bạn) */}
         <Link

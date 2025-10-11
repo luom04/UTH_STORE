@@ -1,6 +1,4 @@
-// src/components/NavBar/SidebarNav.jsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import {
   Laptop2,
   Monitor,
@@ -14,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-/** Mock data: mỗi category có icon + tiêu đề + nhóm cột trong mega menu */
+/** mock menu */
 const CATS = [
   {
     slug: "laptop",
@@ -104,18 +102,15 @@ const CATS = [
   { slug: "console", label: "Handheld, Console", icon: Gamepad2, mega: [] },
 ];
 
-export default function SidebarNav({ panelHeight = 360 }) {
+export default function SidebarNav() {
   const [hoverIdx, setHoverIdx] = useState(null);
   const red = "#e30019";
 
   return (
     <div className="relative" onMouseLeave={() => setHoverIdx(null)}>
-      {/* Sidebar khớp chiều cao banner, cho phép scroll nếu dài */}
-      <aside
-        className="bg-white rounded-xl border shadow-sm overflow-hidden h-full"
-        style={{ height: panelHeight }}
-      >
-        <ul className="py-2 h-full overflow-y-auto">
+      {/* Sidebar */}
+      <aside className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <ul className="py-2">
           {CATS.map((c, i) => {
             const Icon = c.icon;
             const active = hoverIdx === i;
@@ -126,8 +121,9 @@ export default function SidebarNav({ panelHeight = 360 }) {
                   onMouseEnter={() => setHoverIdx(i)}
                   className={[
                     "w-full px-3 h-11 flex items-center gap-3 text-left transition-colors",
-                    active ? `bg-[${red}] text-white` : "hover:bg-gray-100",
+                    active ? `text-white` : "hover:bg-gray-100",
                   ].join(" ")}
+                  style={active ? { backgroundColor: red } : {}}
                 >
                   <span
                     className={[
@@ -142,7 +138,7 @@ export default function SidebarNav({ panelHeight = 360 }) {
                       className={active ? "text-white" : "text-gray-700"}
                     />
                   </span>
-                  <span className="flex-1 font-medium">{c.label}</span>
+                  <span className="flex-1 font-medium text-sm">{c.label}</span>
                   <ChevronRight
                     size={16}
                     className={active ? "opacity-100" : "opacity-50"}
@@ -153,36 +149,6 @@ export default function SidebarNav({ panelHeight = 360 }) {
           })}
         </ul>
       </aside>
-
-      {/* Mega menu nổi trên banner + hover được */}
-      {hoverIdx !== null && CATS[hoverIdx]?.mega?.length > 0 && (
-        <div
-          className="absolute top-0 left-[calc(100%+12px)] z-40 pointer-events-auto"
-          style={{ height: panelHeight, right: 0 }}
-        >
-          <div className="bg-white rounded-xl border shadow-lg h-full p-6 grid grid-cols-3 gap-8 overflow-auto">
-            {CATS[hoverIdx].mega.map((col, idx) => (
-              <div key={idx}>
-                <div className={`text-[${red}] font-semibold mb-3`}>
-                  {col.title}
-                </div>
-                <ul className="space-y-2">
-                  {col.items.map((name) => (
-                    <li key={name}>
-                      <Link
-                        to={`/c/${CATS[hoverIdx].slug}`}
-                        className="text-gray-700 hover:underline"
-                      >
-                        {name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
