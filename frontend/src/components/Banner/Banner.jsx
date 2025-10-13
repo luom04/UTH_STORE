@@ -169,7 +169,7 @@ function DesktopBanner({ panelHeight, bottomRowHeight }) {
   return (
     <div className="w-full">
       {/* hàng trên: slider 2/3 + 2 ô dọc 1/3 */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-1">
         <div className="col-span-2">
           <div
             className="relative rounded-xl overflow-hidden w-full"
@@ -216,7 +216,7 @@ function DesktopBanner({ panelHeight, bottomRowHeight }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4" style={{ height: panelHeight }}>
+        <div className="flex flex-col gap-1" style={{ height: panelHeight }}>
           {rightBoxes.map((b, i) => (
             <div key={i} className="relative rounded-xl overflow-hidden h-1/2">
               <img
@@ -238,7 +238,7 @@ function DesktopBanner({ panelHeight, bottomRowHeight }) {
 
       {/* hàng dưới: 3 banner nhỏ */}
       <div
-        className="grid grid-cols-3 gap-4 mt-4"
+        className="grid grid-cols-3 gap-1 mt-1"
         style={{ height: bottomRowHeight }}
       >
         {bottomBoxes.map((b, i) => (

@@ -1,6 +1,6 @@
-import { useState } from "react";
 import {
   Laptop2,
+  PcCase,
   Monitor,
   Cpu,
   HardDrive,
@@ -8,120 +8,103 @@ import {
   Keyboard,
   Mouse,
   Gamepad2,
-  ShoppingBasket,
-  ChevronRight,
+  Server,
+  Fan,
+  Speaker,
+  Blocks,
+  ChevronRight, // <-- ĐÃ THÊM
 } from "lucide-react";
+import { useState, useMemo } from "react";
 
-/** mock menu */
-const CATS = [
-  {
-    slug: "laptop",
-    label: "Laptop",
-    icon: Laptop2,
-    mega: [
-      {
-        title: "Dòng laptop",
-        items: ["Văn phòng", "Gaming", "Đồ họa", "Mỏng nhẹ", "Xem tất cả"],
-      },
-      {
-        title: "Thương hiệu",
-        items: ["ASUS", "MSI", "Lenovo", "Acer", "HP", "Xem tất cả"],
-      },
-      {
-        title: "Tầm giá",
-        items: ["< 15 triệu", "15–25 triệu", "25–35 triệu", "> 35 triệu"],
-      },
-    ],
-  },
-  {
-    slug: "pc-gvn",
-    label: "PC GVN",
-    icon: ShoppingBasket,
-    mega: [
-      {
-        title: "Cấu hình",
-        items: [
-          "i5 + RTX 4060",
-          "i7 + RTX 4070",
-          "R5 + RTX 4060Ti",
-          "Xem tất cả",
-        ],
-      },
-      {
-        title: "Mục đích",
-        items: ["Học tập", "Văn phòng", "Gaming", "Streaming"],
-      },
-    ],
-  },
-  {
-    slug: "main-cpu-vga",
-    label: "Main, CPU, VGA",
-    icon: Cpu,
-    mega: [
-      {
-        title: "CPU",
-        items: [
-          "Intel Gen 13",
-          "Intel Gen 14",
-          "Ryzen 5",
-          "Ryzen 7",
-          "Xem tất cả",
-        ],
-      },
-      { title: "Mainboard", items: ["B660", "B760", "Z690", "X670", "B650"] },
-      {
-        title: "VGA",
-        items: ["RTX 4060", "RTX 4070", "RTX 4080", "RX 7700 XT"],
-      },
-    ],
-  },
-  {
-    slug: "storage-ram",
-    label: "Ổ cứng, RAM, Thẻ nhớ",
-    icon: HardDrive,
-    mega: [
-      {
-        title: "Dung lượng RAM",
-        items: ["8 GB", "16 GB", "32 GB", "64 GB", "Xem tất cả"],
-      },
-      {
-        title: "Dung lượng SSD",
-        items: ["250GB–256GB", "480GB–512GB", "960GB–1TB", "2TB", "Trên 2TB"],
-      },
-      {
-        title: "Hãng SSD",
-        items: ["Samsung", "WD", "Kingston", "Corsair", "PNY", "Xem tất cả"],
-      },
-      { title: "Thẻ nhớ / USB", items: ["Sandisk"] },
-    ],
-  },
-  { slug: "audio", label: "Loa, Micro, Webcam", icon: Headphones, mega: [] },
-  { slug: "monitor", label: "Màn hình", icon: Monitor, mega: [] },
-  { slug: "keyboard", label: "Bàn phím", icon: Keyboard, mega: [] },
-  { slug: "mouse", label: "Chuột + Lót chuột", icon: Mouse, mega: [] },
-  { slug: "console", label: "Handheld, Console", icon: Gamepad2, mega: [] },
-];
-
-export default function SidebarNav() {
+/**
+ * props:
+ * - categories: [{ slug, name, icon? }]   // Sửa label thành name cho nhất quán
+ * - panelHeight: number (px)
+ * - hasContainer: boolean
+ */
+export default function SidebarNav({
+  categories = [],
+  panelHeight = 520,
+  hasContainer = true,
+}) {
   const [hoverIdx, setHoverIdx] = useState(null);
   const red = "#e30019";
 
+  const iconMap = useMemo(
+    () => ({
+      // ... (giữ nguyên)
+      laptop: Laptop2,
+      pc: PcCase,
+      "pc-gvn": PcCase,
+      monitor: Monitor,
+      console: Gamepad2,
+      handheld: Gamepad2,
+      mainboard: Cpu,
+      cpu: Cpu,
+      vga: Cpu,
+      "main-cpu-vga": Cpu,
+      ram: HardDrive,
+      storage: HardDrive,
+      "ổ cứng": HardDrive,
+      case: Server,
+      cooling: Fan,
+      keyboard: Keyboard,
+      mouse: Mouse,
+      audio: Headphones,
+      headset: Headphones,
+      loa: Speaker,
+      speaker: Speaker,
+      accessory: Blocks,
+    }),
+    []
+  );
+
+  const CATS_FALLBACK = [
+    // ... (giữ nguyên)
+    { name: "Laptop", img: "...", slug: "laptop" },
+    { name: "PC", img: "...", slug: "pc" },
+    { name: "Màn hình", img: "...", slug: "monitor" },
+    { name: "Mainboard", img: "...", slug: "mainboard" },
+    { name: "CPU", img: "...", slug: "cpu" },
+    { name: "VGA", img: "...", slug: "vga" },
+    { name: "RAM", img: "...", slug: "ram" },
+    { name: "Ổ cứng", img: "...", slug: "storage" },
+    { name: "Case", img: "...", slug: "case" },
+    { name: "Tản nhiệt", img: "...", slug: "cooling" },
+    { name: "Bàn phím", img: "...", slug: "keyboard" },
+    { name: "Chuột", img: "...", slug: "mouse" },
+    { name: "Tai nghe", img: "...", slug: "headset" },
+    { name: "Loa", img: "...", slug: "speaker" },
+    { name: "Console", img: "...", slug: "console" },
+    { name: "Phụ kiện", img: "...", slug: "accessory" },
+  ];
+
+  // Nên dùng biến CATS đã khai báo thay vì CATS_FALLBACK
+  const CATS = categories.length ? categories : CATS_FALLBACK;
+
   return (
     <div className="relative" onMouseLeave={() => setHoverIdx(null)}>
-      {/* Sidebar */}
-      <aside className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <ul className="py-2">
+      <aside
+        className={[
+          "bg-white overflow-hidden",
+          hasContainer ? "rounded-xl shadow-sm" : "",
+        ].join(" ")}
+        style={{ height: panelHeight }}
+      >
+        <ul className="py-2 h-full overflow-y-auto">
           {CATS.map((c, i) => {
-            const Icon = c.icon;
+            // Sửa thành CATS để dùng được cả dữ liệu thật
+            const Icon = c.icon || iconMap[c.slug] || Laptop2;
             const active = hoverIdx === i;
+
             return (
-              <li key={c.slug}>
+              <li key={c.slug || c.name}>
                 <button
                   type="button"
                   onMouseEnter={() => setHoverIdx(i)}
                   className={[
-                    "w-full px-3 h-11 flex items-center gap-3 text-left transition-colors",
-                    active ? `text-white` : "hover:bg-gray-100",
+                    "w-full px-3 h-10 md:h-11 flex items-center gap-3 text-left transition-colors text-[13px] md:text-sm",
+                    active ? "text-white" : "hover:bg-gray-100",
                   ].join(" ")}
                   style={active ? { backgroundColor: red } : {}}
                 >
@@ -138,7 +121,8 @@ export default function SidebarNav() {
                       className={active ? "text-white" : "text-gray-700"}
                     />
                   </span>
-                  <span className="flex-1 font-medium text-sm">{c.label}</span>
+                  <span className="flex-1 font-medium">{c.name}</span>{" "}
+                  {/* <-- SỬA c.label THÀNH c.name */}
                   <ChevronRight
                     size={16}
                     className={active ? "opacity-100" : "opacity-50"}

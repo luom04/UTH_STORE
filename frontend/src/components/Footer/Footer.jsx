@@ -2,7 +2,7 @@ import { Facebook, Music, Youtube, Users } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200">
+    <footer className="bg-white border-t border-gray-200 mt-10">
       {/* Main Footer Content */}
       <div className="max-w-6xl mx-auto px-3 py-8">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">

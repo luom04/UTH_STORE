@@ -1,35 +1,47 @@
-import { useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import Header from "../../components/Header/Header.jsx";
 import Footer from "../../components/Footer/Footer.jsx";
-import SidebarNav from "../../components/NavBar/SidebarNav.jsx";
-import BannerHome from "../../components/Banner/Banner.jsx";
+import Backdrop from "../../components/Backdrop/Backdrop.jsx";
+import SidebarNav_Backdrop from "../../components/NavBar/SidebarNav_Backdrop.jsx";
+import { AnimatePresence } from "framer-motion";
 
-export default function Layout({ children, noFooter = false }) {
-  const { pathname } = useLocation();
-  const isHome = pathname === "/";
+export default function Layout({
+  children,
+  noHeader = false,
+  noFooter = false,
+}) {
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  // 1. Tạo một hàm duy nhất để BẬT/TẮT
+  const toggleSidebar = () => {
+    // Lấy giá trị state trước đó và đảo ngược nó
+    setSidebarOpen((prevState) => !prevState);
+  };
+  // 2. Giữ lại hàm closeSidebar để dùng cho Backdrop
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header cartCount={5} />
-      <div className="h-14" />
-      {isHome && (
-        <section className="max-w-6xl mx-auto px-3 mt-3">
-          <div className="flex gap-4 items-stretch">
-            {/* Sidebar 20% */}
-            <div className="w-[20%] min-w-[220px]">
-              <SidebarNav />
-            </div>
-
-            {/* Banner 80% (slider duy nhất) */}
-            <div className="flex-1">
-              <BannerHome />
-            </div>
-          </div>
-        </section>
-      )}
+      {!noHeader && <Header cartCount={5} onMenuClick={toggleSidebar} />}
+      {/* spacer để tránh header fixed */}
+      <div className="h-20" />
 
       <main className="flex-1">{children}</main>
+
       {!noFooter && <Footer />}
+
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            <Backdrop onClick={closeSidebar} />
+            <SidebarNav_Backdrop onClose={closeSidebar} />
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* 3. THÊM COMPONENT Toaster */}
+      <Toaster position="top-center" />
     </div>
   );
 }

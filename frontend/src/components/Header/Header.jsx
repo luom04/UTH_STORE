@@ -9,12 +9,12 @@ import {
   ShoppingCart,
   UserCircle,
 } from "lucide-react";
-
+import { PATHS } from "../../routes/paths";
 /**
  * Header đỏ kiểu GEARVN (dùng lucide-react)
  * - props.cartCount: số lượng item trong giỏ (mặc định 0)
  */
-export default function NavBar({ cartCount = 0 }) {
+export default function Header({ cartCount = 0, onMenuClick }) {
   const [q, setQ] = useState("");
 
   const onSubmit = (e) => {
@@ -25,7 +25,7 @@ export default function NavBar({ cartCount = 0 }) {
 
   return (
     // 👇 THÊM CÁC CLASS CỐ ĐỊNH VÀO ĐÂY
-    <div className="bg-[#e30019] text-white fixed top-0 left-0 right-0 z-50">
+    <div className="bg-[#e30019] text-white fixed top-0 left-0 right-0 p-3 z-50">
       <div className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-3">
         {/* Logo nếu muốn đặt ở đây (tuỳ bố cục của bạn) */}
         <Link
@@ -38,7 +38,8 @@ export default function NavBar({ cartCount = 0 }) {
         {/* Nút Danh mục */}
         <button
           type="button"
-          className="hidden sm:flex items-center gap-2 bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.25)] rounded-lg h-10 px-3 transition-colors"
+          onClick={onMenuClick} // <-- Gọi hàm khi click
+          className="hidden sm:flex items-center gap-2 bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.25)] rounded-lg h-10 px-3 transition-colors cursor-pointer"
         >
           <Menu size={18} />
           <span className="font-medium">Danh mục</span>
@@ -113,7 +114,7 @@ export default function NavBar({ cartCount = 0 }) {
           </Link>
 
           <Link
-            to="/login"
+            to={PATHS.LOGIN}
             className="flex items-center gap-2 bg-[rgba(0,0,0,0.15)] hover:bg-[rgba(0,0,0,0.25)] rounded-lg h-10 px-3 transition-colors"
           >
             <UserCircle size={18} />
