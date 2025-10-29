@@ -68,4 +68,15 @@ export const ProductService = {
     if (!doc) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
     return { deleted: true };
   },
+
+  // + thêm method
+  async updateStock(id, diff = 0) {
+    // không cho stock âm
+    const doc = await Product.findById(id);
+    if (!doc) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    const next = Math.max(0, (doc.stock || 0) + diff);
+    doc.stock = next;
+    await doc.save();
+    return doc;
+  },
 };

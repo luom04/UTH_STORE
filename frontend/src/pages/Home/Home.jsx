@@ -71,6 +71,11 @@ const mockMice = mockPCs.map((p, i) => ({
   title: "Chuột gaming " + (i + 1),
   chips: ["Wireless", "RGB", "PAW3395"],
 }));
+const mockKeyboard = mockPCs.map((p, i) => ({
+  ...p,
+  id: "kb" + i,
+  title: "Bàn phím gaming " + (i + 1),
+}));
 
 export default function Home() {
   return (
@@ -103,6 +108,11 @@ export default function Home() {
           title="Chuột bán chạy"
           viewAllHref="/collections/mouse"
           products={mockMice}
+        />
+        <ProductRow
+          title="Bàn phím bán chạy"
+          viewAllHref="/collections/keyboard"
+          products={mockKeyboard}
         />
         <CategoriesSection />
       </div>

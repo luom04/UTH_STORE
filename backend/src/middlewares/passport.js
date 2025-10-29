@@ -3,12 +3,14 @@ import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { config } from "../config.js";
 import { User } from "../models/user.model.js";
+import crypto from "crypto";
 
 // === JWT Strategy (giữ như bạn đang có) ===
 export const jwtStrategy = new JwtStrategy(
   {
     jwtFromRequest: ExtractJwt.fromExtractors([
       (req) => req?.cookies?.access_token,
+      ExtractJwt.fromAuthHeaderAsBearerToken(), // fallback
     ]),
     secretOrKey: config.jwt.accessSecret,
   },
@@ -41,7 +43,7 @@ export const googleStrategy = new GoogleStrategy(
         user = await User.create({
           email,
           // Đặt password random (user đăng nhập bằng Google, không dùng pass này)
-          password: Math.random().toString(36),
+          password: crypto.randomBytes(32).toString("hex"), // sẽ được hash bởi pre-save
           name: profile.displayName || profile?.name?.givenName || "",
           isEmailVerified: true,
         });

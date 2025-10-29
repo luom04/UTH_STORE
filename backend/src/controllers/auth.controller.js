@@ -1,3 +1,4 @@
+//src/controllers/auth.controller.js
 import httpStatus from "http-status";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AuthService } from "../services/auth.service.js";
@@ -8,15 +9,17 @@ const setAuthCookies = (res, { accessToken, refreshToken }, cookieCfg) => {
     httpOnly: true,
     secure: cookieCfg.secure,
     sameSite: cookieCfg.sameSite,
-    domain: cookieCfg.domain,
+    // domain: cookieCfg.domain,
     maxAge: 15 * 60 * 1000,
+    path: "/",
   });
   res.cookie("refresh_token", refreshToken, {
     httpOnly: true,
     secure: cookieCfg.secure,
     sameSite: cookieCfg.sameSite,
-    domain: cookieCfg.domain,
+    // domain: cookieCfg.domain,
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 };
 
@@ -78,7 +81,15 @@ export const me = asyncHandler(async (req, res) => {
     id: req.user._id,
     email: req.user.email,
     name: req.user.name,
-    role: req.user.role,
+    role: String(req.user.role || "").toLowerCase(), // 👈
     verified: req.user.isEmailVerified,
+    phone: req.user.phone,
+    gender: req.user.gender,
+    dob: req.user.dob,
   });
+});
+
+export const updateMe = asyncHandler(async (req, res) => {
+  const updated = await AuthService.updateMe(req.user._id, req.body);
+  return ok(res, updated);
 });

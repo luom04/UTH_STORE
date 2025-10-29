@@ -32,3 +32,13 @@ export const deleteProduct = asyncHandler(async (req, res) => {
   const result = await ProductService.remove(req.params.id);
   return ok(res, result);
 });
+
+// + cuối file
+export const updateProductStock = asyncHandler(async (req, res) => {
+  const { diff } = req.body; // số dương/âm
+  const doc = await ProductService.updateStock(
+    req.params.id,
+    Number(diff) || 0
+  );
+  return ok(res, doc);
+});

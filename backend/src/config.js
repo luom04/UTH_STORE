@@ -1,3 +1,4 @@
+//src/config.js
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -13,9 +14,12 @@ export const config = {
     refreshExpiresIn: process.env.REFRESH_TOKEN_EXPIRES || "7d",
   },
   cookie: {
-    secure: process.env.COOKIE_SECURE === "true",
-    domain: process.env.COOKIE_DOMAIN,
-    sameSite: "lax",
+    // secure: process.env.COOKIE_SECURE === "true",
+    // domain: process.env.COOKIE_DOMAIN,
+    // sameSite: "lax",
+    secure: true, // localhost hiện coi là secure context
+    domain: undefined, // DEV: bỏ domain
+    sameSite: "none",
   },
   resend: {
     apiKey: process.env.RESEND_API_KEY,

@@ -12,27 +12,25 @@ import {
   Fan,
   Speaker,
   Blocks,
-  ChevronRight, // <-- ĐÃ THÊM
+  ChevronRight,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom"; // ⬅️ thêm
 
-/**
- * props:
- * - categories: [{ slug, name, icon? }]   // Sửa label thành name cho nhất quán
- * - panelHeight: number (px)
- * - hasContainer: boolean
- */
 export default function SidebarNav({
   categories = [],
   panelHeight = 520,
   hasContainer = true,
+  onClose, // ⬅️ Nhận prop onClose
 }) {
   const [hoverIdx, setHoverIdx] = useState(null);
+  const navigate = useNavigate();
   const red = "#e30019";
+
+  const getCatalogPath = (slug) => `/collections/${slug}`;
 
   const iconMap = useMemo(
     () => ({
-      // ... (giữ nguyên)
       laptop: Laptop2,
       pc: PcCase,
       "pc-gvn": PcCase,
@@ -60,27 +58,35 @@ export default function SidebarNav({
   );
 
   const CATS_FALLBACK = [
-    // ... (giữ nguyên)
-    { name: "Laptop", img: "...", slug: "laptop" },
-    { name: "PC", img: "...", slug: "pc" },
-    { name: "Màn hình", img: "...", slug: "monitor" },
-    { name: "Mainboard", img: "...", slug: "mainboard" },
-    { name: "CPU", img: "...", slug: "cpu" },
-    { name: "VGA", img: "...", slug: "vga" },
-    { name: "RAM", img: "...", slug: "ram" },
-    { name: "Ổ cứng", img: "...", slug: "storage" },
-    { name: "Case", img: "...", slug: "case" },
-    { name: "Tản nhiệt", img: "...", slug: "cooling" },
-    { name: "Bàn phím", img: "...", slug: "keyboard" },
-    { name: "Chuột", img: "...", slug: "mouse" },
-    { name: "Tai nghe", img: "...", slug: "headset" },
-    { name: "Loa", img: "...", slug: "speaker" },
-    { name: "Console", img: "...", slug: "console" },
-    { name: "Phụ kiện", img: "...", slug: "accessory" },
+    { name: "Laptop", slug: "laptop" },
+    { name: "PC", slug: "pc" },
+    { name: "Màn hình", slug: "monitor" },
+    { name: "Mainboard", slug: "mainboard" },
+    { name: "CPU", slug: "cpu" },
+    { name: "VGA", slug: "vga" },
+    { name: "RAM", slug: "ram" },
+    { name: "Ổ cứng", slug: "storage" },
+    { name: "Case", slug: "case" },
+    { name: "Tản nhiệt", slug: "cooling" },
+    { name: "Bàn phím", slug: "keyboard" },
+    { name: "Chuột", slug: "mouse" },
+    { name: "Tai nghe", slug: "headset" },
+    { name: "Loa", slug: "speaker" },
+    { name: "Console", slug: "console" },
+    { name: "Phụ kiện", slug: "accessory" },
   ];
 
-  // Nên dùng biến CATS đã khai báo thay vì CATS_FALLBACK
   const CATS = categories.length ? categories : CATS_FALLBACK;
+
+  const handleClick = (slug) => {
+    if (!slug) return;
+    navigate(getCatalogPath(slug));
+
+    // ⬅️ Đóng sidebar sau khi navigate
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <div className="relative" onMouseLeave={() => setHoverIdx(null)}>
@@ -93,7 +99,6 @@ export default function SidebarNav({
       >
         <ul className="py-2 h-full overflow-y-auto">
           {CATS.map((c, i) => {
-            // Sửa thành CATS để dùng được cả dữ liệu thật
             const Icon = c.icon || iconMap[c.slug] || Laptop2;
             const active = hoverIdx === i;
 
@@ -102,8 +107,9 @@ export default function SidebarNav({
                 <button
                   type="button"
                   onMouseEnter={() => setHoverIdx(i)}
+                  onClick={() => handleClick(c.slug)}
                   className={[
-                    "w-full px-3 h-10 md:h-11 flex items-center gap-3 text-left transition-colors text-[13px] md:text-sm",
+                    "w-full px-3 h-10 md:h-11 flex items-center gap-3 text-left transition-colors text-[13px] md:text-sm cursor-pointer",
                     active ? "text-white" : "hover:bg-gray-100",
                   ].join(" ")}
                   style={active ? { backgroundColor: red } : {}}
@@ -121,8 +127,7 @@ export default function SidebarNav({
                       className={active ? "text-white" : "text-gray-700"}
                     />
                   </span>
-                  <span className="flex-1 font-medium">{c.name}</span>{" "}
-                  {/* <-- SỬA c.label THÀNH c.name */}
+                  <span className="flex-1 font-medium">{c.name}</span>
                   <ChevronRight
                     size={16}
                     className={active ? "opacity-100" : "opacity-50"}

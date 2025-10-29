@@ -1,3 +1,4 @@
+// src/pages/Auth/Register.jsx
 import { useState } from "react";
 import {
   Eye,
@@ -8,11 +9,10 @@ import {
   LoaderCircle,
   Check,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+import { useRegister } from "../../hooks/useAuth";
+import { PATHS } from "../../routes/paths";
 
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
@@ -50,11 +50,9 @@ const getPasswordStrength = (password) => {
 };
 
 export default function Register() {
-  const navigate = useNavigate();
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [localError, setLocalError] = useState("");
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -63,86 +61,61 @@ export default function Register() {
     agreeTerms: false,
   });
 
+  // ✅ Sử dụng React Query hook
+  const { mutate: register, isPending, error } = useRegister();
+
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    setLocalError(""); // Clear local error khi user nhập
   };
 
   const validateForm = () => {
     if (!form.fullName.trim()) {
-      setErr("Vui lòng nhập họ tên");
+      setLocalError("Vui lòng nhập họ tên");
       return false;
     }
     if (!form.email.trim()) {
-      setErr("Vui lòng nhập email");
+      setLocalError("Vui lòng nhập email");
       return false;
     }
     if (form.password.length < 8) {
-      setErr("Mật khẩu phải có ít nhất 8 ký tự");
+      setLocalError("Mật khẩu phải có ít nhất 8 ký tự");
       return false;
     }
     if (form.password !== form.confirmPassword) {
-      setErr("Mật khẩu không khớp");
+      setLocalError("Mật khẩu không khớp");
       return false;
     }
     if (!form.agreeTerms) {
-      setErr("Vui lòng đồng ý với điều khoản sử dụng");
+      setLocalError("Vui lòng đồng ý với điều khoản sử dụng");
       return false;
     }
     return true;
   };
 
-  const onSubmit = async (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
-    setErr("");
+    setLocalError("");
 
     if (!validateForm()) {
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
-    const registerPromise = fetch(`${API_BASE}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        password: form.password,
-      }),
-    }).then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || "Đăng ký không thành công");
-      }
-      return data;
+    // ✅ Gọi mutation
+    register({
+      fullName: form.fullName.trim(),
+      email: form.email.trim(),
+      password: form.password,
     });
-
-    toast
-      .promise(registerPromise, {
-        loading: "Đang đăng ký...",
-        success: (data) => {
-          console.log("Register successful:", data);
-          setTimeout(() => navigate("/login"), 1500);
-          return "Đăng ký thành công! Đang chuyển hướng...";
-        },
-        error: (err) => {
-          setErr(err.message);
-          return err.message;
-        },
-      })
-      .finally(() => {
-        setLoading(false);
-      });
   };
 
   const registerWithGoogle = () => {
-    window.location.href = `${API_BASE}/auth/google`;
+    window.location.href = `${import.meta.env.VITE_API_BASE}/auth/google`;
   };
 
   const passwordStrength = getPasswordStrength(form.password);
+  const displayError = localError || error?.message;
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-gray-50 grid place-items-center px-4 py-8">
@@ -173,7 +146,8 @@ export default function Register() {
                   value={form.fullName}
                   onChange={onChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={isPending}
+                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Nguyễn Văn A"
                 />
               </div>
@@ -194,7 +168,8 @@ export default function Register() {
                   value={form.email}
                   onChange={onChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={isPending}
+                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="you@example.com"
                 />
               </div>
@@ -215,13 +190,15 @@ export default function Register() {
                   value={form.password}
                   onChange={onChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={isPending}
+                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isPending}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                   aria-label="Toggle password"
                 >
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -267,13 +244,15 @@ export default function Register() {
                   value={form.confirmPassword}
                   onChange={onChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  disabled={isPending}
+                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPw((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={isPending}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                   aria-label="Toggle confirm password"
                 >
                   {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -294,10 +273,11 @@ export default function Register() {
                 name="agreeTerms"
                 checked={form.agreeTerms}
                 onChange={onChange}
-                className="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                disabled={isPending}
+                className="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-gray-600">
-                I agree with{""}
+                I agree with{" "}
                 <a href="#" className="text-indigo-600 hover:underline">
                   Terms of Use
                 </a>
@@ -308,12 +288,12 @@ export default function Register() {
             <motion.button
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               className="w-full h-11 flex items-center justify-center rounded-lg py-2.5 font-semibold text-white transition-all duration-300
-              bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400"
+              bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400 disabled:cursor-not-allowed"
             >
               <AnimatePresence mode="wait" initial={false}>
-                {loading ? (
+                {isPending ? (
                   <motion.div
                     key="loader"
                     initial={{ opacity: 0, y: -20 }}
@@ -337,7 +317,7 @@ export default function Register() {
 
             {/* Hiển thị lỗi */}
             <AnimatePresence>
-              {err && (
+              {displayError && (
                 <motion.div
                   variants={errorVariants}
                   initial="hidden"
@@ -345,13 +325,12 @@ export default function Register() {
                   exit="hidden"
                   className="text-sm text-red-600 text-center"
                 >
-                  {err}
+                  {displayError}
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Divider */}
-
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 border-t border-gray-300" />
               <span className="text-xs uppercase text-gray-500 whitespace-nowrap">
@@ -359,11 +338,13 @@ export default function Register() {
               </span>
               <div className="flex-1 border-t border-gray-300" />
             </div>
+
             {/* Nút Google */}
             <button
               type="button"
               onClick={registerWithGoogle}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 hover:bg-gray-50 flex items-center justify-center gap-2 text-sm font-medium text-gray-700"
+              disabled={isPending}
+              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 hover:bg-gray-50 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <img
                 src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
@@ -376,9 +357,9 @@ export default function Register() {
 
           {/* Link tới trang Login */}
           <div className="mt-6 text-center text-sm text-gray-600">
-            Already have an account ?{""}
+            Already have an account?{" "}
             <Link
-              to="/login"
+              to={PATHS.LOGIN}
               className="font-semibold text-indigo-600 hover:underline"
             >
               Login

@@ -112,9 +112,9 @@ export default function ProductRow({ title, viewAllHref, products }) {
   );
 
   return (
-    <section className="rounded-xl bg-white shadow-sm">
+    <section className="rounded-xl bg-white shadow-sm ">
       {/* header (bỏ 'Trả góp 0%') */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3 cursor-pointer">
         <h2 className="text-lg font-bold">{title}</h2>
         <Link
           to={viewAllHref}
@@ -128,7 +128,7 @@ export default function ProductRow({ title, viewAllHref, products }) {
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex" style={{ gap: GAP }}>
             {data.map((p) => (
-              <div key={p.id} style={itemStyle} className="h-full">
+              <div key={p.id} style={itemStyle} className="h-full ">
                 <ProductCard p={p} />
               </div>
             ))}

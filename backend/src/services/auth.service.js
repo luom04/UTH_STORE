@@ -1,3 +1,4 @@
+//src/services/auth.service.js
 import httpStatus from "http-status";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
@@ -52,9 +53,14 @@ export const AuthService = {
     const user = await User.findOne({ email }).select("+password");
     if (!user)
       throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    // Phòng trường hợp user được tạo từ Google (không có password local)
+    if (!user.password) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    }
     const ok = await user.comparePassword(password);
     if (!ok) throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
-    const tokens = await this.issueTokens(user._id, ip, ua);
+    // ⚠️ Truyền user để lấy đúng role khi ký JWT
+    const tokens = await this.issueTokens(user, ip, ua);
     return {
       user: {
         id: user._id,
@@ -67,20 +73,35 @@ export const AuthService = {
     };
   },
 
-  async issueTokens(userId, ip, ua, family = crypto.randomUUID()) {
-    const accessToken = signAccessToken({ sub: String(userId), role: "user" });
-    const refreshPlain = signRefreshToken({ sub: String(userId), family });
-    const tokenHash = RefreshToken.hash(refreshPlain);
-    const { exp } = verifyRefreshToken(refreshPlain);
+  async issueTokens(userOrId, ip, ua, family = crypto.randomUUID()) {
+    const user =
+      typeof userOrId === "object" ? userOrId : await User.findById(userOrId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+    // Ký access token với role thật từ DB (đã chuẩn hóa "CUSTOMER" | "STAFF" | "ADMIN")
+    const accessToken = signAccessToken({
+      sub: String(user._id),
+      role: user.role,
+    });
+
+    // Tạo refresh token chuỗi thô (plain) rồi hash lưu vào DB
+    const refreshTokenPlain = signRefreshToken({
+      sub: String(user._id),
+      family,
+    });
+    const { exp } = verifyRefreshToken(refreshTokenPlain);
+    const tokenHash = RefreshToken.hash(refreshTokenPlain);
+
     await RefreshToken.create({
-      user: userId,
+      user: user._id,
       tokenHash,
       family,
       expiresAt: new Date(exp * 1000),
       ip,
       ua,
     });
-    return { accessToken, refreshToken: refreshPlain };
+
+    return { accessToken, refreshToken: refreshTokenPlain };
   },
 
   async refresh({ refreshToken, ip, ua }) {
@@ -110,8 +131,10 @@ export const AuthService = {
     stored.used = true; // rotation
     await stored.save();
 
-    // issue new pair in same family
-    return this.issueTokens(stored.user, ip, ua, payload.family);
+    // Phát hành cặp token mới (cùng family) — cần user để lấy role
+    const user = await User.findById(stored.user);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+    return this.issueTokens(user, ip, ua, payload.family);
   },
   // Yêu cầu đặt lại mật khẩu: gửi email có token
   async requestPasswordReset({ email }) {
@@ -175,5 +198,35 @@ export const AuthService = {
       }
     } catch {}
     return { success: true };
+  },
+  async updateMe(userId, payload) {
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+    const allowed = ["name", "phone", "gender", "dob"];
+    for (const k of allowed) {
+      if (typeof payload[k] !== "undefined") {
+        if (k === "dob" && payload.dob && typeof payload.dob === "object") {
+          user.dob = {
+            d: payload.dob.d ?? user.dob?.d ?? "",
+            m: payload.dob.m ?? user.dob?.m ?? "",
+            y: payload.dob.y ?? user.dob?.y ?? "",
+          };
+        } else {
+          user[k] = payload[k];
+        }
+      }
+    }
+    await user.save(); // Trả về data “an toàn”
+    return {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      gender: user.gender,
+      dob: user.dob,
+      role: String(user.role || "").toLowerCase(), // 👈
+      verified: user.isEmailVerified,
+    };
   },
 };

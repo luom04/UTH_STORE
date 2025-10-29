@@ -7,6 +7,7 @@ import {
   getProduct,
   updateProduct,
   deleteProduct,
+  updateProductStock,
 } from "../controllers/product.controller.js";
 import { validate } from "../middlewares/validate.js";
 import {
@@ -49,4 +50,11 @@ router.delete(
   deleteProduct
 );
 
+// ✅ STAFF + ADMIN được phép cập nhật tồn kho
+router.put(
+  "/:id/stock",
+  passport.authenticate("jwt", { session: false }),
+  requireRoles("staff", "admin"),
+  updateProductStock
+);
 export default router;

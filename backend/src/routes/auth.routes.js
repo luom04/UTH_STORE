@@ -1,7 +1,7 @@
 // src/routes/auth.routes.js
 import { Router } from "express";
 import passport from "passport";
-import { ok } from "../utils/apiResponse.js";
+import { AuthService } from "../services/auth.service.js";
 // Import dạng named từ controller
 import {
   register,
@@ -12,6 +12,7 @@ import {
   me,
   requestPasswordReset,
   resetPassword,
+  updateMe,
 } from "../controllers/auth.controller.js";
 
 const router = Router();
@@ -66,5 +67,6 @@ router.post("/reset-password", resetPassword);
 
 // Route cần JWT cookie
 router.get("/me", passport.authenticate("jwt", { session: false }), me);
+router.put("/me", passport.authenticate("jwt", { session: false }), updateMe);
 
 export default router;

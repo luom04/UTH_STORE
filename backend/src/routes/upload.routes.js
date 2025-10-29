@@ -1,41 +1,39 @@
 // src/routes/upload.routes.js
 import { Router } from "express";
 import passport from "passport";
-import { validate } from "../middlewares/validate.js";
-import { requireAuth, requireRoles } from "../middlewares/auth.middleware.js";
-import {
-  signParamsSchema,
-  deleteByPublicIdSchema,
-} from "../validators/upload.schema.js";
-import {
-  getSignedParams,
-  deleteByPublicId,
-} from "../controllers/upload.controller.js";
+import { requireRoles } from "../middlewares/auth.middleware.js";
+import crypto from "crypto";
+import { config } from "../config.js";
 
 const router = Router();
 
 /**
- * Lấy chữ ký (signed params) để FE upload trực tiếp lên Cloudinary
- * – Chỉ cần user đã đăng nhập (tùy bạn: có thể để public nếu không sợ abuse)
+ * POST /api/v1/uploads/sign-image
+ * Trả về { timestamp, signature, apiKey, cloudName, folder? }
+ * YÊU CẦU: admin hoặc staff
  */
 router.post(
-  "/signature",
+  "/sign-image",
   passport.authenticate("jwt", { session: false }),
-  requireAuth,
-  validate(signParamsSchema),
-  getSignedParams
-);
+  requireRoles("admin", "staff"),
+  (req, res) => {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folder = "uth_store/products"; // tuỳ chỉnh
+    // Signature theo Cloudinary spec: sha1("folder=...&timestamp=...API_SECRET")
+    const toSign = `folder=${folder}&timestamp=${timestamp}${config.cloudinary.apiSecret}`;
+    const signature = crypto.createHash("sha1").update(toSign).digest("hex");
 
-/**
- * Xóa ảnh theo public_id
- * – Chỉ admin
- */
-router.delete(
-  "/by-public-id",
-  passport.authenticate("jwt", { session: false }),
-  requireRoles("admin"),
-  validate(deleteByPublicIdSchema),
-  deleteByPublicId
+    res.json({
+      success: true,
+      data: {
+        timestamp,
+        signature,
+        apiKey: config.cloudinary.apiKey,
+        cloudName: config.cloudinary.cloudName,
+        folder,
+      },
+    });
+  }
 );
 
 export default router;

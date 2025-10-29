@@ -9,9 +9,12 @@ import messageRoutes from "./message.routes.js";
 import cartRoutes from "./cart.routes.js";
 import orderRoutes from "./order.routes.js";
 import exportRoutes from "./export.routes.js";
-
+import addressRoutes from "./address.routes.js";
+//route admin
+import orderAdminRoutes from "./order.admin.routes.js";
 const router = Router();
 router.use("/auth", authRoutes);
+router.use("/addresses", addressRoutes); // ✅ thêm
 router.use("/products", productRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/brands", brandRoutes);
@@ -21,6 +24,9 @@ router.use("/messages", messageRoutes);
 router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
 router.use("/export", exportRoutes); // /api/export/*.xlsx
+
+//admin
+router.use("/admin/orders", orderAdminRoutes);
 
 // health check
 router.get("/health", (req, res) => res.json({ status: "ok" }));
