@@ -69,6 +69,7 @@ export function useUpdateStock() {
   });
 }
 
+// src/Features/Admin/hooks/useProducts.js
 /** Ký upload Cloudinary (client hỏi BE để lấy signature, timestamp…) */
 export function useSignCloudinary() {
   return useMutation({

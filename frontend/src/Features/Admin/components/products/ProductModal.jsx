@@ -1,6 +1,9 @@
 // src/Features/Admin/components/products/ProductModal.jsx
 import { useEffect, useState } from "react";
 import { useSignCloudinary } from "../../hooks/useProducts";
+import DynamicSpecsFields from "./DynamicSpecsFields";
+import { CATEGORY_OPTIONS } from "../../constants/productSpecs";
+import { CircleX } from "lucide-react";
 
 export default function ProductModal({
   open,
@@ -29,7 +32,26 @@ export default function ProductModal({
   });
 
   useEffect(() => {
-    if (!initial) return;
+    if (!initial) {
+      // Reset form khi không có initial data
+      setForm({
+        id: undefined,
+        title: "",
+        slug: "",
+        category: "",
+        brand: "",
+        price: 0,
+        stock: 0,
+        image: "",
+        images: [],
+        description: "",
+        active: true,
+        isFeatured: false,
+        specs: {},
+      });
+      return;
+    }
+
     setForm({
       id: initial.id,
       title: initial.title || "",
@@ -51,37 +73,54 @@ export default function ProductModal({
       isFeatured: !!initial.isFeatured,
       specs: initial.specs || {},
     });
-  }, [initial]);
+  }, [initial, open]);
 
   if (!open) return null;
 
   const save = (e) => {
     e.preventDefault();
+
+    // Validation
     if (!form.title?.trim()) {
-      alert("Vui lòng nhập Tên sản phẩm.");
+      alert("⚠️ Vui lòng nhập Tên sản phẩm.");
       return;
     }
+    if (!form.category?.trim()) {
+      alert("⚠️ Vui lòng chọn Danh mục sản phẩm.");
+      return;
+    }
+
     const payload = {
       id: form.id,
-      title: form.title,
-      slug: form.slug || undefined,
-      description: form.description || "",
+      title: form.title.trim(),
+      slug: form.slug?.trim() || undefined,
+      description: form.description?.trim() || "",
       price: Number(form.price) || 0,
       stock: Number(form.stock) || 0,
-      images: form.images?.length
-        ? form.images
-        : form.image
-        ? [form.image]
-        : [],
-      category: form.category || "",
-      brand: form.brand || "",
-      active: !!form.active,
-      isFeatured: !!form.isFeatured,
-      specs: form.specs || undefined,
+
+      // ✅ Đảm bảo images là array
+      images:
+        Array.isArray(form.images) && form.images.length > 0
+          ? form.images
+          : form.image
+          ? [form.image]
+          : [],
+
+      category: form.category?.trim() || "",
+      brand: form.brand?.trim() || "",
+
+      // ✅ active sẽ được API chuyển thành status
+      active: Boolean(form.active),
+      isFeatured: Boolean(form.isFeatured),
+
+      // ✅ Đảm bảo specs là object
+      specs: form.specs && typeof form.specs === "object" ? form.specs : {},
     };
+
+    console.log("📤 Payload từ form:", payload);
+
     onSave(payload);
   };
-
   // Upload file → Cloudinary (ký bởi server)
   const handleFile = async (file) => {
     if (!file) return;
@@ -100,7 +139,7 @@ export default function ProductModal({
       const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
       const res = await fetch(endpoint, { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload thất bại");
-      const json = await res.json(); // { secure_url, public_id, ... }
+      const json = await res.json();
 
       const url = json.secure_url;
       setForm((f) => ({
@@ -115,153 +154,336 @@ export default function ProductModal({
     }
   };
 
+  // Xóa ảnh khỏi danh sách
+  const removeImage = (urlToRemove) => {
+    setForm((f) => ({
+      ...f,
+      images: f.images.filter((url) => url !== urlToRemove),
+      image: f.image === urlToRemove ? f.images[0] || "" : f.image,
+    }));
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
+    <div className="fixed inset-0 bg-black/50 grid place-items-center z-50 overflow-y-auto p-4">
       <form
         onSubmit={save}
-        className="w-full max-w-2xl rounded-xl bg-white p-5 space-y-4"
+        className="w-full max-w-4xl rounded-xl bg-white p-6 space-y-5 my-8"
       >
-        <h3 className="text-lg font-semibold">
-          {form.id ? "Sửa sản phẩm" : "Thêm sản phẩm"}
-        </h3>
-
-        <div className="grid md:grid-cols-2 gap-3">
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Tên sản phẩm"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            disabled={!canEditAll}
-          />
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Slug (tuỳ chọn)"
-            value={form.slug}
-            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-            disabled={!canEditAll}
-          />
+        {/* Header */}
+        <div className="flex items-center justify-between border-b pb-3">
+          <h3 className="text-xl font-bold text-gray-800">
+            {form.id ? "✏️ Sửa sản phẩm" : "➕ Thêm sản phẩm mới"}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none cursor-pointer"
+          >
+            <CircleX />
+          </button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-3">
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Danh mục"
-            value={form.category}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, category: e.target.value }))
-            }
-            disabled={!canEditAll}
-          />
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Thương hiệu"
-            value={form.brand}
-            onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-            disabled={!canEditAll}
-          />
-          <input
-            type="number"
-            className="rounded-lg border px-3 py-2"
-            placeholder="Giá (đ)"
-            value={form.price}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, price: Number(e.target.value) || 0 }))
-            }
-            disabled={!canEditAll}
-          />
-        </div>
+        {/* Section 1: Thông tin cơ bản */}
+        <div className="space-y-4">
+          <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="text-lg">📝</span>
+            Thông tin cơ bản
+          </h4>
 
-        <div className="grid md:grid-cols-3 gap-3">
-          <input
-            type="number"
-            className="rounded-lg border px-3 py-2"
-            placeholder="Tồn kho"
-            value={form.stock}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, stock: Number(e.target.value) || 0 }))
-            }
-          />
-
-          {/* URL ảnh (giữ lại) */}
-          <input
-            className="rounded-lg border px-3 py-2"
-            placeholder="Ảnh (URL)"
-            value={form.image}
-            onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-            disabled={!canEditAll}
-          />
-
-          {/* Upload file lên Cloudinary */}
-          <div className="flex items-center gap-2">
-            <label
-              className={`flex-1 rounded-lg border px-3 py-2 cursor-pointer text-sm ${
-                uploading ? "opacity-60 pointer-events-none" : ""
-              }`}
-            >
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
-                disabled={uploading}
-              />
-              {uploading ? "Đang upload…" : "Tải ảnh lên Cloudinary"}
+          {/* Category (quan trọng nhất - lên đầu) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Danh mục sản phẩm <span className="text-red-500">*</span>
             </label>
-          </div>
-        </div>
-
-        {/* preview ảnh nhỏ */}
-        {!!form.images?.length && (
-          <div className="flex gap-2 flex-wrap">
-            {form.images.map((u) => (
-              <img
-                key={u}
-                src={u}
-                alt="preview"
-                className="w-16 h-16 rounded object-cover border"
-              />
-            ))}
-          </div>
-        )}
-
-        <textarea
-          className="w-full rounded-lg border px-3 py-2"
-          rows={4}
-          placeholder="Mô tả"
-          value={form.description}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, description: e.target.value }))
-          }
-          disabled={!canEditAll}
-        />
-
-        <div className="flex items-center justify-between">
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={!!form.active}
+            <select
+              className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+              value={form.category}
               onChange={(e) =>
-                setForm((f) => ({ ...f, active: e.target.checked }))
+                setForm((f) => ({
+                  ...f,
+                  category: e.target.value,
+                  specs: {}, // Reset specs khi đổi category
+                }))
+              }
+              disabled={!canEditAll}
+              required
+            >
+              <option value="">-- Chọn danh mục --</option>
+              {CATEGORY_OPTIONS.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tên & Slug */}
+          <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tên sản phẩm <span className="text-red-500">*</span>
+              </label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+                placeholder="VD: PC Intel i3-12100F/ VGA RX 6500XT"
+                value={form.title}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, title: e.target.value }))
+                }
+                disabled={!canEditAll}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Slug (URL thân thiện)
+              </label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+                placeholder="Để trống để tự động tạo"
+                value={form.slug}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, slug: e.target.value }))
+                }
+                disabled={!canEditAll}
+              />
+            </div>
+          </div>
+
+          {/* Brand, Price, Stock */}
+          <div className="grid md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thương hiệu
+              </label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+                placeholder="ASUS, MSI, Gigabyte..."
+                value={form.brand}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, brand: e.target.value }))
+                }
+                disabled={!canEditAll}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Giá (VNĐ) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+                placeholder="0"
+                // 1. value: Luôn hiển thị state (có thể là số 0, hoặc chuỗi "")
+                value={form.price}
+                // 2. onChange: Cập nhật state dưới dạng chuỗi và chỉ cho phép số
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^[0-9]*$/.test(value)) {
+                    // Chỉ cho phép gõ số
+                    setForm((f) => ({ ...f, price: value }));
+                  }
+                }}
+                // 3. onFocus: Nếu là "0", làm rỗng để gõ
+                onFocus={(e) => {
+                  if (Number(e.target.value) === 0) {
+                    setForm((f) => ({ ...f, price: "" }));
+                  }
+                }}
+                // 4. onBlur: Nếu rỗng, đặt lại là 0 (số)
+                onBlur={(e) => {
+                  if (e.target.value === "") {
+                    setForm((f) => ({ ...f, price: 0 }));
+                  } else {
+                    // Chuyển state về dạng số cho nhất quán
+                    setForm((f) => ({ ...f, price: Number(e.target.value) }));
+                  }
+                }}
+                disabled={!canEditAll}
+                min="0"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tồn kho <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                className="w-full rounded-lg border px-3 py-2"
+                placeholder="0"
+                // Áp dụng tương tự cho Tồn kho
+                value={form.stock}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (/^[0-9]*$/.test(value)) {
+                    setForm((f) => ({ ...f, stock: value }));
+                  }
+                }}
+                onFocus={(e) => {
+                  if (Number(e.target.value) === 0) {
+                    setForm((f) => ({ ...f, stock: "" }));
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value === "") {
+                    setForm((f) => ({ ...f, stock: 0 }));
+                  } else {
+                    setForm((f) => ({ ...f, stock: Number(e.target.value) }));
+                  }
+                }}
+                min="0"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mô tả sản phẩm
+            </label>
+            <textarea
+              className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+              rows={3}
+              placeholder="Mô tả chi tiết về sản phẩm..."
+              value={form.description}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
               }
               disabled={!canEditAll}
             />
-            Hiển thị bán (status = active)
-          </label>
+          </div>
+        </div>
+
+        {/* Section 2: Hình ảnh */}
+        <div className="space-y-3 border-t pt-4">
+          <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="text-lg">🖼️</span>
+            Hình ảnh sản phẩm
+          </h4>
+
+          <div className="grid md:grid-cols-2 gap-3">
+            {/* URL ảnh */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                URL hình ảnh
+              </label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+                placeholder="https://..."
+                value={form.image}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, image: e.target.value }))
+                }
+                disabled={!canEditAll}
+              />
+            </div>
+
+            {/* Upload Cloudinary */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Hoặc tải ảnh lên
+              </label>
+              <label
+                className={`flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed px-3 py-2 cursor-pointer hover:border-blue-400 transition ${
+                  uploading ? "opacity-60 pointer-events-none" : ""
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                  disabled={uploading || !canEditAll}
+                />
+                <span className="text-sm text-gray-600">
+                  {uploading ? "⏳ Đang tải lên..." : "📤 Chọn file từ máy"}
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Preview ảnh */}
+          {!!form.images?.length && (
+            <div className="flex gap-2 flex-wrap p-3 bg-gray-50 rounded-lg">
+              {form.images.map((url, idx) => (
+                <div key={url} className="relative group">
+                  <img
+                    src={url}
+                    alt={`preview-${idx}`}
+                    className="w-20 h-20 rounded object-cover border-2 border-gray-200"
+                  />
+                  {canEditAll && (
+                    <button
+                      type="button"
+                      onClick={() => removeImage(url)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition"
+                      title="Xóa ảnh này"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Section 3: Thông số kỹ thuật (Dynamic) */}
+        <div className="space-y-3 border-t pt-4">
+          <DynamicSpecsFields
+            category={form.category}
+            specs={form.specs}
+            onChange={(specs) => setForm((f) => ({ ...f, specs }))}
+            disabled={!canEditAll}
+          />
+        </div>
+
+        {/* Section 4: Options */}
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="space-y-2">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!form.active}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, active: e.target.checked }))
+                }
+                disabled={!canEditAll}
+                className="w-4 h-4"
+              />
+              <span>✅ Hiển thị bán (Active)</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm ml-4">
+              <input
+                type="checkbox"
+                checked={!!form.isFeatured}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isFeatured: e.target.checked }))
+                }
+                disabled={!canEditAll}
+                className="w-4 h-4"
+              />
+              <span>⭐ Sản phẩm nổi bật</span>
+            </label>
+          </div>
 
           <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border"
+              className="px-5 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition cursor-pointer"
             >
               Huỷ
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white"
+              className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
               disabled={uploading}
             >
-              Lưu
+              {uploading ? "⏳ Đang xử lý..." : "💾 Lưu sản phẩm"}
             </button>
           </div>
         </div>

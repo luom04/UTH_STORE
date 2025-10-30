@@ -152,7 +152,9 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h1 className=" text-xl font-bold mb-4">Quản lý đơn hàng</h1>
+      <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
+        Quản lý đơn hàng
+      </h1>
 
       {/* Bộ lọc */}
       <div className="mb-4 flex flex-col md:flex-row gap-3">

@@ -6,7 +6,6 @@ export default function ProductsTable({
   isLoading,
   isError,
   list,
-  meta,
   onEdit,
   onDelete,
   onInc,
@@ -37,7 +36,7 @@ export default function ProductsTable({
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           <button
-            className="grid h-7 w-7 place-items-center rounded border"
+            className="grid h-7 w-7 place-items-center rounded border cursor-pointer hover:bg-gray-50"
             onClick={() => onDec(p.id)}
             title="Giảm 1"
           >
@@ -45,7 +44,7 @@ export default function ProductsTable({
           </button>
           <div className="w-10 text-center">{p.stock}</div>
           <button
-            className="grid h-7 w-7 place-items-center rounded border"
+            className="grid h-7 w-7 place-items-center rounded border cursor-pointer hover:bg-gray-50"
             onClick={() => onInc(p.id)}
             title="Tăng 1"
           >
@@ -62,7 +61,7 @@ export default function ProductsTable({
       <td className="px-3 py-2">
         <div className="flex items-center gap-2">
           <button
-            className="px-2 py-1.5 rounded border text-sm hover:bg-gray-50"
+            className="px-2 py-1.5 rounded border text-sm hover:bg-gray-50 cursor-pointer"
             onClick={() => onEdit(p)}
             title="Sửa"
           >
@@ -71,7 +70,7 @@ export default function ProductsTable({
 
           {canDelete && (
             <button
-              className="px-2 py-1.5 rounded border text-sm hover:bg-rose-50 text-rose-600"
+              className="px-2 py-1.5 rounded border text-sm hover:bg-rose-50 text-rose-600 cursor-pointer"
               onClick={() => onDelete(p.id)}
               title="Xoá"
             >

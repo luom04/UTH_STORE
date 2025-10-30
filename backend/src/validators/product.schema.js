@@ -7,18 +7,30 @@ const idParam = z.object({
 
 export const createProductSchema = z.object({
   body: z.object({
-    title: z.string().min(3).max(200),
-    slug: z.string().min(3).max(220).optional(), // nếu không gửi, sẽ tự tạo từ title
+    title: z.string().min(3, "Tên sản phẩm phải có ít nhất 3 ký tự").max(200),
+    slug: z.string().min(3).max(220).optional(),
     description: z.string().max(20000).optional(),
-    price: z.number().nonnegative(),
+    price: z.number().nonnegative("Giá phải >= 0"),
     priceSale: z.number().nonnegative().optional(),
     stock: z.number().int().nonnegative().optional(),
-    images: z.array(z.string().url()).optional(),
+
+    // ✅ Images: cho phép array rỗng
+    images: z
+      .array(z.string().url("URL ảnh không hợp lệ"))
+      .optional()
+      .default([]),
+
     category: z.string().optional(),
     brand: z.string().optional(),
-    specs: z.record(z.any()).optional(),
-    status: z.enum(["active", "draft", "hidden"]).optional(),
-    isFeatured: z.boolean().optional(),
+
+    // ✅ FIX: Specs - cho phép object rỗng hoặc undefined
+    specs: z
+      .union([z.record(z.any()), z.object({}).passthrough()])
+      .optional()
+      .default({}),
+
+    status: z.enum(["active", "draft", "hidden"]).optional().default("active"),
+    isFeatured: z.boolean().optional().default(false),
   }),
 });
 
@@ -35,7 +47,12 @@ export const updateProductSchema = z.object({
       images: z.array(z.string().url()).optional(),
       category: z.string().optional(),
       brand: z.string().optional(),
-      specs: z.record(z.any()).optional(),
+
+      // ✅ FIX: Specs cho update
+      specs: z
+        .union([z.record(z.any()), z.object({}).passthrough()])
+        .optional(),
+
       status: z.enum(["active", "draft", "hidden"]).optional(),
       isFeatured: z.boolean().optional(),
     })
@@ -45,3 +62,14 @@ export const updateProductSchema = z.object({
 });
 
 export const idSchema = idParam;
+
+/**
+ * Schema cho update stock
+ * PUT /api/products/:id/stock
+ */
+export const updateStockSchema = z.object({
+  params: z.object({ id: z.string().length(24) }),
+  body: z.object({
+    diff: z.number().int("Diff phải là số nguyên"),
+  }),
+});

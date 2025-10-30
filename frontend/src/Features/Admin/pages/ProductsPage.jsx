@@ -25,7 +25,7 @@ export default function ProductsPage() {
 
   const { data, isLoading, isError, refetch } = useAdminProducts({
     page,
-    limit: 20,
+    limit: 10,
     q,
     stock: stockFilter,
   });
@@ -62,17 +62,13 @@ export default function ProductsPage() {
     <div>
       {/* Header + actions */}
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Quản lý sản phẩm</h1>
+        <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
+          Quản lý sản phẩm
+        </h1>
         <div className="flex items-center gap-2">
-          <button
-            className="rounded-lg border px-3 py-2 text-sm flex items-center gap-2"
-            onClick={() => refetch()}
-          >
-            <RefreshCw size={16} /> Làm mới
-          </button>
           {isAdmin && (
             <button
-              className="rounded-lg bg-blue-600 text-white px-3 py-2 text-sm flex items-center gap-2"
+              className="rounded-lg bg-blue-600 text-white px-3 py-2 text-sm flex items-center gap-2 cursor-pointer"
               onClick={() => {
                 setEditing(null);
                 setOpenModal(true);
