@@ -1,6 +1,6 @@
 // src/api/authApi.js
 import axiosInstance from "./axiosInstance";
-
+// src/api/authApi.js
 export const authApi = {
   register: async (userData) => {
     const { data } = await axiosInstance.post("/auth/register", {
@@ -11,6 +11,21 @@ export const authApi = {
     return data;
   },
 
+  // ✅ ADD THIS
+  verifyEmail: async (token) => {
+    const { data } = await axiosInstance.post("/auth/verify-email", {
+      token,
+    });
+    return data;
+  },
+  // ✅ THÊM HÀM MỚI NÀY VÀO
+  resendVerification: async ({ email }) => {
+    // API của bạn là /auth/resend-verification và cần { email }
+    const { data } = await axiosInstance.post("/auth/resend-verification", {
+      email,
+    });
+    return data;
+  },
   login: async ({ email, password }) => {
     const { data } = await axiosInstance.post("/auth/login", {
       email,

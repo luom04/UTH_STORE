@@ -27,7 +27,7 @@ export const createApp = () => {
     cors({
       origin: config.clientUrl,
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     })
   );
   app.use(express.json({ limit: "1mb" }));
@@ -36,7 +36,7 @@ export const createApp = () => {
   app.use(
     rateLimit({
       windowMs: 60 * 1000,
-      limit: 100,
+      limit: 1000,
       standardHeaders: true,
       legacyHeaders: false,
     })

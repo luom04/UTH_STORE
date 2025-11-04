@@ -1,8 +1,8 @@
 // src/Features/Admin/components/products/ProductModal.jsx
 import { useEffect, useState } from "react";
 import { useSignCloudinary } from "../../hooks/useProducts";
+import { useCategories } from "../../../../hooks/useCategories"; // ✅ NEW: Fetch từ API
 import DynamicSpecsFields from "./DynamicSpecsFields";
-import { CATEGORY_OPTIONS } from "../../constants/productSpecs";
 import { CircleX } from "lucide-react";
 
 export default function ProductModal({
@@ -14,6 +14,9 @@ export default function ProductModal({
 }) {
   const [uploading, setUploading] = useState(false);
   const signMut = useSignCloudinary();
+
+  // ✅ Fetch categories từ API thay vì hardcoded
+  const { categories, isLoading: categoriesLoading } = useCategories();
 
   const [form, setForm] = useState({
     id: undefined,
@@ -121,6 +124,7 @@ export default function ProductModal({
 
     onSave(payload);
   };
+
   // Upload file → Cloudinary (ký bởi server)
   const handleFile = async (file) => {
     if (!file) return;
@@ -190,13 +194,13 @@ export default function ProductModal({
             Thông tin cơ bản
           </h4>
 
-          {/* Category (quan trọng nhất - lên đầu) */}
+          {/* ✅ Category (fetch từ API) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Danh mục sản phẩm <span className="text-red-500">*</span>
             </label>
             <select
-              className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
+              className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={form.category}
               onChange={(e) =>
                 setForm((f) => ({
@@ -205,16 +209,26 @@ export default function ProductModal({
                   specs: {}, // Reset specs khi đổi category
                 }))
               }
-              disabled={!canEditAll}
+              disabled={!canEditAll || categoriesLoading}
               required
             >
-              <option value="">-- Chọn danh mục --</option>
-              {CATEGORY_OPTIONS.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
+              <option value="">
+                {categoriesLoading
+                  ? "Đang tải danh mục..."
+                  : "-- Chọn danh mục --"}
+              </option>
+              {/* ✅ Map từ API */}
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat.slug}>
+                  {cat.name}
                 </option>
               ))}
             </select>
+            {categoriesLoading && (
+              <p className="mt-1 text-xs text-gray-500">
+                ⏳ Đang tải danh mục từ server...
+              </p>
+            )}
           </div>
 
           {/* Tên & Slug */}
@@ -274,28 +288,22 @@ export default function ProductModal({
                 type="number"
                 className="w-full rounded-lg border px-3 py-2 disabled:bg-gray-50"
                 placeholder="0"
-                // 1. value: Luôn hiển thị state (có thể là số 0, hoặc chuỗi "")
                 value={form.price}
-                // 2. onChange: Cập nhật state dưới dạng chuỗi và chỉ cho phép số
                 onChange={(e) => {
                   const value = e.target.value;
                   if (/^[0-9]*$/.test(value)) {
-                    // Chỉ cho phép gõ số
                     setForm((f) => ({ ...f, price: value }));
                   }
                 }}
-                // 3. onFocus: Nếu là "0", làm rỗng để gõ
                 onFocus={(e) => {
                   if (Number(e.target.value) === 0) {
                     setForm((f) => ({ ...f, price: "" }));
                   }
                 }}
-                // 4. onBlur: Nếu rỗng, đặt lại là 0 (số)
                 onBlur={(e) => {
                   if (e.target.value === "") {
                     setForm((f) => ({ ...f, price: 0 }));
                   } else {
-                    // Chuyển state về dạng số cho nhất quán
                     setForm((f) => ({ ...f, price: Number(e.target.value) }));
                   }
                 }}
@@ -313,7 +321,6 @@ export default function ProductModal({
                 type="number"
                 className="w-full rounded-lg border px-3 py-2"
                 placeholder="0"
-                // Áp dụng tương tự cho Tồn kho
                 value={form.stock}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -481,7 +488,7 @@ export default function ProductModal({
             <button
               type="submit"
               className="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
-              disabled={uploading}
+              disabled={uploading || categoriesLoading}
             >
               {uploading ? "⏳ Đang xử lý..." : "💾 Lưu sản phẩm"}
             </button>

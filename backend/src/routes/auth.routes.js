@@ -13,6 +13,7 @@ import {
   requestPasswordReset,
   resetPassword,
   updateMe,
+  resendVerification,
 } from "../controllers/auth.controller.js";
 
 const router = Router();
@@ -59,6 +60,7 @@ router.get(
 // Auth routes (KHÔNG có prefix /api/v1 ở đây; prefix gắn ở app.use('/api/v1', routes))
 router.post("/register", register);
 router.post("/verify-email", verifyEmail);
+router.post("/resend-verification", resendVerification); // ✅ NEW
 router.post("/login", login);
 router.post("/refresh", refresh);
 router.post("/logout", logout);

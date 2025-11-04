@@ -7,6 +7,7 @@ export const PATHS = {
   LOGOUT: "/auth/logout",
   FORGOT_PASSWORD: "/auth/forgot-password",
   RESET_PASSWORD: "/auth/reset-password",
+  VERIFY_EMAIL: "/verify-email",
   OAUTH_SUCCESS: "/oauth-success",
   PRODUCT_DETAIL: "/products/:slug",
   CATALOG: "/collections/:slug",

@@ -5,6 +5,37 @@ const idParam = z.object({
   params: z.object({ id: z.string().length(24, "Invalid Mongo ObjectId") }),
 });
 
+// ✅ Helper: Validate URL linh hoạt - Fix markdown links
+const flexibleUrlSchema = z.string().transform((val) => {
+  if (!val || val.trim() === "") return "";
+
+  let url = val.trim();
+
+  // ✅ FIX: Xử lý markdown link format [url](url)
+  const markdownMatch = url.match(/\[(.+?)\]\((.+?)\)/);
+  if (markdownMatch) {
+    url = markdownMatch[2]; // Lấy URL trong ngoặc tròn
+  }
+
+  // ✅ FIX: Remove leading/trailing brackets nếu có
+  url = url.replace(/^\[|\]$/g, "");
+
+  // Thêm https:// nếu thiếu protocol
+  if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+
+  // Kiểm tra URL hợp lệ
+  try {
+    new URL(url);
+    return url;
+  } catch (error) {
+    // ✅ Trả về chuỗi rỗng thay vì throw error (để không chặn submit)
+    console.warn(`⚠️ URL không hợp lệ (bỏ qua): ${val}`);
+    return "";
+  }
+});
+
 export const createProductSchema = z.object({
   body: z.object({
     title: z.string().min(3, "Tên sản phẩm phải có ít nhất 3 ký tự").max(200),
@@ -14,11 +45,12 @@ export const createProductSchema = z.object({
     priceSale: z.number().nonnegative().optional(),
     stock: z.number().int().nonnegative().optional(),
 
-    // ✅ Images: cho phép array rỗng
+    // ✅ Images: linh hoạt, tự động thêm https://
     images: z
-      .array(z.string().url("URL ảnh không hợp lệ"))
+      .array(flexibleUrlSchema)
       .optional()
-      .default([]),
+      .default([])
+      .transform((urls) => urls.filter((url) => url !== "")), // Lọc bỏ URL rỗng
 
     category: z.string().optional(),
     brand: z.string().optional(),
@@ -44,7 +76,16 @@ export const updateProductSchema = z.object({
       price: z.number().nonnegative().optional(),
       priceSale: z.number().nonnegative().optional(),
       stock: z.number().int().nonnegative().optional(),
-      images: z.array(z.string().url()).optional(),
+
+      // ✅ FIX: Images linh hoạt
+      images: z
+        .array(flexibleUrlSchema)
+        .optional()
+        .transform((urls) => {
+          if (!urls) return undefined;
+          return urls.filter((url) => url !== "");
+        }),
+
       category: z.string().optional(),
       brand: z.string().optional(),
 

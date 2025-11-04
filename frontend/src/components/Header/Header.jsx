@@ -29,7 +29,7 @@ export default function Header({ cartCount = 0, onMenuClick }) {
   const { isAuthenticated, user } = useAuth();
 
   const role = String(user?.role || "").toLowerCase();
-  const isStaffOrAdmin = role === "admin" || role === "nhanvien";
+  const isStaffOrAdmin = role === "admin" || role === "staff";
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -42,7 +42,7 @@ export default function Header({ cartCount = 0, onMenuClick }) {
     <div className="bg-[#e30019] text-white fixed top-0 left-0 right-0 p-3 z-50">
       <div className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-3">
         <Link
-          to="/"
+          to={PATHS.HOME}
           className="hidden sm:block text-xl font-extrabold tracking-wide transition-opacity duration-150 hover:opacity-90" // Thêm transition
         >
           <img src="/logo.png" alt="logo" className="h-15 w-30 object-center" />
@@ -93,9 +93,10 @@ export default function Header({ cartCount = 0, onMenuClick }) {
               </div>
             </Link>
 
+            {/* ✅ THAY ĐỔI TẠI ĐÂY: Thêm border mờ */}
             <Link
               to={ADMIN_PATHS.ADMIN_DASHBOARD}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-[rgba(255,255,255,0.1)]"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors duration-150 border border-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.1)]"
             >
               <UserCog size={18} />
               <div className="leading-4">

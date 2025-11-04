@@ -26,6 +26,7 @@ export default function AdminSidebar() {
       to: ADMIN_PATHS.ADMIN_PRODUCTS,
       icon: Box,
     },
+
     {
       label: "Quản lý khách hàng",
       to: ADMIN_PATHS.ADMIN_CUSTOMERS,

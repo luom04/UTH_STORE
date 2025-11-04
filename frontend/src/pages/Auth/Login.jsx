@@ -1,10 +1,15 @@
+// src/pages/Login.jsx - ĐÃ SỬA LỖI
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, LoaderCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLogin } from "../../hooks/useAuth";
+import toast from "react-hot-toast"; // <-- ✅ Lỗi #2: Đã import toast
+
+// ✅ Sửa lại import: Thêm useResendVerification
+import { useLogin, useResendVerification } from "../../hooks/useAuth";
 import { PATHS } from "../../routes/paths";
 
+// ... (Giữ nguyên cardVariants, errorVariants) ...
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
@@ -17,15 +22,21 @@ const errorVariants = {
 
 export default function Login() {
   const [showPw, setShowPw] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  // const [resending, setResending] = useState(false); // <-- ✅ Xóa state này
+
   const [form, setForm] = useState({
-    // 2. Đọc email từ localStorage khi khởi tạo state
     email: localStorage.getItem("remember_email") || "",
     password: "",
-    // 3. Tự động check vào ô remember nếu có email đã lưu
     remember: !!localStorage.getItem("remember_email"),
   });
-  // ✅ Sử dụng React Query hook
+
+  // ✅ Hook cho login
   const { mutate: login, isPending, error } = useLogin();
+
+  // ✅ Hook cho resend (thay thế cho resending state)
+  const { mutate: resendEmail, isPending: isResending } =
+    useResendVerification();
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -35,18 +46,40 @@ export default function Login() {
   const onSubmit = (e) => {
     e.preventDefault();
 
-    // Lưu email nếu người dùng check "Remember me"
     if (form.remember) {
       localStorage.setItem("remember_email", form.email);
     } else {
       localStorage.removeItem("remember_email");
     }
 
-    // ✅ Gọi mutation
-    login({
-      email: form.email.trim(),
-      password: form.password,
-    });
+    login(
+      {
+        email: form.email.trim(),
+        password: form.password,
+      },
+      {
+        onError: (error) => {
+          if (error.message?.includes("verify your email")) {
+            setShowResend(true);
+            // toast.error đã được xử lý trong hook `useLogin`
+          }
+        },
+      }
+    );
+  };
+
+  // ✅ Sửa lại hàm handleResend
+  const handleResend = () => {
+    // ✅ Lỗi #1: Phải truyền { email: form.email }
+    resendEmail(
+      { email: form.email },
+      {
+        onSuccess: () => {
+          setShowResend(false); // Tự động ẩn đi khi thành công
+        },
+        // onError đã được xử lý trong hook
+      }
+    );
   };
 
   const loginWithGoogle = () => {
@@ -82,7 +115,7 @@ export default function Login() {
                   value={form.email}
                   onChange={onChange}
                   required
-                  disabled={isPending}
+                  disabled={isPending || isResending} // ✅ Cập nhật disabled
                   className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="you@example.com"
                 />
@@ -104,14 +137,14 @@ export default function Login() {
                   value={form.password}
                   onChange={onChange}
                   required
-                  disabled={isPending}
+                  disabled={isPending || isResending} // ✅ Cập nhật disabled
                   className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((s) => !s)}
-                  disabled={isPending}
+                  disabled={isPending || isResending} // ✅ Cập nhật disabled
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
                   aria-label="Toggle password"
                 >
@@ -128,7 +161,7 @@ export default function Login() {
                   name="remember"
                   checked={form.remember}
                   onChange={onChange}
-                  disabled={isPending}
+                  disabled={isPending || isResending} // ✅ Cập nhật disabled
                   className="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
                 />
                 Remember me
@@ -145,9 +178,9 @@ export default function Login() {
             <motion.button
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isResending} // ✅ Cập nhật disabled
               className="w-full h-11 flex items-center justify-center rounded-lg py-2.5 font-semibold text-white transition-all duration-300
-              bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                     bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400 disabled:cursor-not-allowed"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {isPending ? (
@@ -200,7 +233,7 @@ export default function Login() {
             <button
               type="button"
               onClick={loginWithGoogle}
-              disabled={isPending}
+              disabled={isPending || isResending} // ✅ Cập nhật disabled
               className="w-full rounded-lg border border-gray-300 bg-white py-2.5 hover:bg-gray-50 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <img
@@ -211,6 +244,30 @@ export default function Login() {
               Google
             </button>
           </form>
+
+          {/* ✅ Resend verification button (Đã sửa) */}
+          {showResend && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800 mb-2">
+                Email của bạn chưa được xác nhận
+              </p>
+              <button
+                onClick={handleResend}
+                disabled={isResending} // ✅ Sửa: Dùng isResending
+                className="w-full bg-yellow-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-yellow-700 disabled:opacity-50 cursor-pointer"
+              >
+                {/* ✅ Sửa: Dùng isResending */}
+                {isResending ? (
+                  <span className="flex items-center justify-center">
+                    <LoaderCircle size={16} className="animate-spin mr-2" />
+                    Đang gửi...
+                  </span>
+                ) : (
+                  "📧 Gửi lại email xác nhận"
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Link tới trang Register */}
           <div className="mt-6 text-center text-sm text-gray-600">

@@ -5,6 +5,33 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "../routes/paths";
 
+// src/hooks/useAuth.js
+
+// ✅ THÊM HOOK NÀY
+export function useGetVerificationStatus(token) {
+  return useQuery({
+    // queryKey xác định cache
+    queryKey: ["verifyEmail", token],
+
+    // queryFn là hàm sẽ chạy
+    queryFn: () => authApi.verifyEmail(token),
+
+    // Config rất quan trọng:
+    enabled: !!token, // Chỉ chạy khi có token
+    retry: false, // Không tự động gọi lại khi lỗi
+    refetchOnWindowFocus: false, // Không cần thiết
+    refetchOnMount: false, // Chỉ chạy 1 lần
+
+    // Vẫn dùng onSuccess/onError toàn cục cho toast
+    onSuccess: (data) => {
+      toast.success(data.message || "Email verified successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Verification failed");
+    },
+  });
+}
+
 // Hook cho Register
 export function useRegister() {
   const navigate = useNavigate();
@@ -112,6 +139,21 @@ export function useUpdateProfile() {
     },
     onError: (error) => {
       toast.error(error.message || "Cập nhật hồ sơ thất bại");
+    },
+  });
+}
+
+// ✅ THÊM HOOK MỚI NÀY VÀO CUỐI FILE
+export function useResendVerification() {
+  return useMutation({
+    mutationFn: (data) => authApi.resendVerification(data), // (Xem Bước 2)
+    onSuccess: () => {
+      toast.success(
+        "Email xác nhận đã được gửi lại! Vui lòng kiểm tra hộp thư."
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message || "Gửi email thất bại");
     },
   });
 }

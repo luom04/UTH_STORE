@@ -6,8 +6,8 @@ export default function ProductsTable({
   isLoading,
   isError,
   list,
-  onEdit,
-  onDelete,
+  onEdit, // ✅ undefined = không hiện nút Edit
+  onDelete, // ✅ undefined = không hiện nút Delete
   onInc,
   onDec,
   canDelete,
@@ -34,6 +34,7 @@ export default function ProductsTable({
         {p.price?.toLocaleString()}đ
       </td>
       <td className="px-3 py-2">
+        {/* ✅ Stock controls - CẢ ADMIN & STAFF đều có */}
         <div className="flex items-center gap-2">
           <button
             className="grid h-7 w-7 place-items-center rounded border cursor-pointer hover:bg-gray-50"
@@ -59,16 +60,21 @@ export default function ProductsTable({
         {p.updatedAt ? new Date(p.updatedAt).toLocaleString() : "-"}
       </td>
       <td className="px-3 py-2">
+        {/* ✅ Actions - CHỈ ADMIN */}
         <div className="flex items-center gap-2">
-          <button
-            className="px-2 py-1.5 rounded border text-sm hover:bg-gray-50 cursor-pointer"
-            onClick={() => onEdit(p)}
-            title="Sửa"
-          >
-            <Pencil size={16} />
-          </button>
+          {/* ✅ Edit button - chỉ hiện nếu onEdit được truyền */}
+          {onEdit && (
+            <button
+              className="px-2 py-1.5 rounded border text-sm hover:bg-gray-50 cursor-pointer"
+              onClick={() => onEdit(p)}
+              title="Sửa"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
 
-          {canDelete && (
+          {/* ✅ Delete button - chỉ hiện nếu onDelete được truyền */}
+          {onDelete && canDelete && (
             <button
               className="px-2 py-1.5 rounded border text-sm hover:bg-rose-50 text-rose-600 cursor-pointer"
               onClick={() => onDelete(p.id)}
@@ -76,6 +82,11 @@ export default function ProductsTable({
             >
               <Trash2 size={16} />
             </button>
+          )}
+
+          {/* ✅ Hiển thị dash nếu không có action nào */}
+          {!onEdit && !onDelete && (
+            <span className="text-xs text-gray-400">-</span>
           )}
         </div>
       </td>

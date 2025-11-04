@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AuthService } from "../services/auth.service.js";
 import { ok, created } from "../utils/apiResponse.js";
+import catchAsync from "../utils/catchAsync.js";
 
 const setAuthCookies = (res, { accessToken, refreshToken }, cookieCfg) => {
   res.cookie("access_token", accessToken, {
@@ -29,12 +30,43 @@ export const register = asyncHandler(async (req, res) => {
   return created(res, { id: user._id, email: user.email, name: user.name });
 });
 
-export const verifyEmail = asyncHandler(async (req, res) => {
+// backend/src/controllers/auth.controller.js
+
+export const verifyEmail = catchAsync(async (req, res) => {
+  console.log("=== CONTROLLER ===");
+  console.log("req.body:", req.body);
+  console.log("req.body type:", typeof req.body);
+  console.log("==================");
+
   const { token } = req.body;
-  const user = await AuthService.verifyEmail({ token });
-  return ok(res, { id: user._id, isEmailVerified: user.isEmailVerified });
+
+  console.log("=== EXTRACTED TOKEN ===");
+  console.log("token:", token);
+  console.log("token type:", typeof token);
+  console.log("=======================");
+
+  const result = await AuthService.verifyEmail(token);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    ...result,
+  });
 });
 
+/**
+ * POST /api/auth/resend-verification
+ * Body: { email: "..." }
+ */
+export const resendVerification = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  const result = await AuthService.resendVerificationEmail(email);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    ...result,
+  });
+});
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const ip = req.ip;

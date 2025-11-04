@@ -1,3 +1,4 @@
+//src/middleware/error.middleware.js
 import httpStatus from "http-status";
 import { ApiError } from "../utils/apiError.js";
 

@@ -16,6 +16,7 @@ const ProductsPage = lazy(() =>
 const CustomersPage = lazy(() =>
   import("../Features/Admin/pages/CustomersPage.jsx")
 );
+
 //public
 const Home = lazy(() => import("../pages/Home/Home.jsx"));
 const Login = lazy(() => import("../pages/Auth/Login.jsx"));
@@ -24,6 +25,7 @@ const LogoutPage = lazy(() => import("../pages/Auth/Logout.jsx"));
 const OauthSuccess = lazy(() => import("../pages/Auth/OauthSuccess.jsx"));
 const ForgotPassword = lazy(() => import("../pages/Auth/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("../pages/Auth/ResetPassword.jsx"));
+const VerifyEmail = lazy(() => import("../pages/Auth/VerifyEmailPage.jsx"));
 const ProductDetail = lazy(() => import("../pages/Products/ProductDetail.jsx"));
 const Cart = lazy(() => import("../pages/Cart/Cart.jsx"));
 const CheckoutInfo = lazy(() => import("../pages/Cart/CheckoutInfo.jsx"));
@@ -147,6 +149,15 @@ export const ROUTES = [
     meta: { guestOnly: true },
   },
   {
+    path: PATHS.VERIFY_EMAIL,
+    element: VerifyEmail,
+    layout: {
+      type: "public",
+      props: { noBanner: true, noFooter: true, noHeader: true },
+    },
+    meta: { guestOnly: true },
+  },
+  {
     path: PATHS.OAUTH_SUCCESS,
     element: OauthSuccess,
     layout: {
@@ -253,6 +264,7 @@ export const ROUTES = [
     layout: { type: "admin" },
     meta: { auth: true, roles: ["staff", "admin"] }, // cả staff & admin được vào
   },
+
   // ===== status =====
   {
     path: PATHS.FORBIDDEN,

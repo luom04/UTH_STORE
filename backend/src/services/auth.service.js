@@ -2,6 +2,7 @@
 import httpStatus from "http-status";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
+import { sendVerificationEmail } from "../utils/sendEmail.js";
 import { EmailToken, RefreshToken } from "../models/token.model.js";
 import {
   signAccessToken,
@@ -16,37 +17,204 @@ import { customAlphabet } from "nanoid";
 const nanoid = customAlphabet("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", 32);
 
 export const AuthService = {
-  async register({ email, password, name }) {
-    const exists = await User.findOne({ email });
-    if (exists)
-      throw new ApiError(httpStatus.CONFLICT, "Email already registered");
-    const user = await User.create({ email, password, name });
+  async register({ name, email, password }) {
+    // 1. Check email exists
+    const existing = await User.findOne({ email: email.toLowerCase() });
 
-    // email verification token
-    const token = nanoid();
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24h
-    await EmailToken.create({
-      user: user._id,
-      token,
-      type: "verify",
-      expiresAt,
+    if (existing && existing.isEmailVerified) {
+      throw new ApiError(httpStatus.CONFLICT, "Email already exists");
+    }
+
+    if (existing && !existing.isEmailVerified) {
+      // Gọi resend thay vì duplicate code
+      return this.resendVerificationEmail(email);
+    }
+
+    // 2. Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    console.log("🔑 Token generated at:", new Date().toISOString());
+    console.log("⏰ Token expires at:", verificationTokenExpires.toISOString());
+
+    // 3. Create user
+    const user = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password,
+      role: "customer",
+      isEmailVerified: false,
+      verificationToken,
+      verificationTokenExpires,
     });
 
-    await sendEmail({
-      to: email,
-      subject: "Verify your uthStore account",
-      html: `<p>Hello ${
-        name || ""
-      },</p><p>Verify your email by opening this link:</p>
-<p><a href="${
-        config.clientUrl
-      }/verify-email?token=${token}">Verify Email</a></p>`,
-    });
+    // 4. Send verification email
+    try {
+      await sendVerificationEmail({
+        to: user.email,
+        name: user.name,
+        token: verificationToken,
+      });
+      console.log(`✅ Verification email sent to ${user.email}`);
+    } catch (error) {
+      console.error("❌ Failed to send email:", error);
+    }
 
-    return user;
+    // 5. Return
+    return {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      message:
+        "Registration successful. Please check your email to verify your account.",
+    };
   },
-  async verifyEmail({ token }) {
-    return user;
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(email) {
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      isEmailVerified: false, // Chỉ resend cho user chưa verify
+    });
+
+    if (!user) {
+      throw new ApiError(
+        httpStatus.NOT_FOUND,
+        "User not found or already verified"
+      );
+    }
+
+    // Generate new token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = new Date(verificationTokenExpires);
+    await user.save();
+
+    // Send email
+    try {
+      await sendVerificationEmail({
+        to: user.email,
+        name: user.name,
+        token: verificationToken,
+      });
+      console.log(`✅ Resent verification email to ${user.email}`);
+    } catch (error) {
+      console.error("❌ Failed to resend email:", error);
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "Failed to send email"
+      );
+    }
+
+    return {
+      message: "Verification email resent. Please check your inbox.",
+    };
+  },
+
+  // ✅ FIX: verifyEmail - log để debug
+  // async verifyEmail(token) {
+  //   console.log("🔍 Verifying token:", token);
+  //   console.log("⏰ Current time:", new Date().toISOString());
+
+  //   const user = await User.findOne({
+  //     verificationToken: token,
+  //     verificationTokenExpires: { $gt: new Date() }, // ✅ So sánh với Date object
+  //   }).select("+verificationToken +verificationTokenExpires");
+
+  //   if (!user) {
+  //     console.log("❌ Token not found or expired");
+  //     throw new ApiError(
+  //       httpStatus.BAD_REQUEST,
+  //       "Invalid or expired verification token"
+  //     );
+  //   }
+
+  //   console.log(
+  //     "✅ Token valid, expires at:",
+  //     user.verificationTokenExpires.toISOString()
+  //   );
+
+  //   user.isEmailVerified = true;
+  //   user.verificationToken = undefined;
+  //   user.verificationTokenExpires = undefined;
+  //   await user.save();
+
+  //   return {
+  //     message: "Email verified successfully. You can now login.",
+  //   };
+  // },
+
+  //mới thay
+  // backend/src/services/auth.service.js
+  async verifyEmail(token) {
+    console.log("🔍 Verifying token:", token);
+    console.log("⏰ Current time:", new Date().toISOString());
+
+    // ✅ First find without expiry check
+    const allUsers = await User.find({}).select(
+      "+verificationToken +verificationTokenExpires"
+    );
+    console.log(
+      "📊 All users with tokens:",
+      allUsers.map((u) => ({
+        email: u.email,
+        token: u.verificationToken?.substring(0, 10) + "...",
+        expires: u.verificationTokenExpires,
+      }))
+    );
+
+    // ✅ Find exact token match
+    const userByToken = await User.findOne({
+      verificationToken: token,
+    }).select("+verificationToken +verificationTokenExpires");
+
+    console.log("🔎 User found by token?", userByToken ? "YES" : "NO");
+    if (userByToken) {
+      console.log("📧 Email:", userByToken.email);
+      console.log("🔑 Token match:", userByToken.verificationToken === token);
+      console.log(
+        "⏰ Expires:",
+        userByToken.verificationTokenExpires?.toISOString()
+      );
+      console.log(
+        "⏰ Expired?",
+        userByToken.verificationTokenExpires < new Date()
+      );
+    }
+
+    // ✅ Now check with expiry
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: new Date() },
+    }).select("+verificationToken +verificationTokenExpires");
+
+    if (!user) {
+      console.log("❌ Token not found or expired");
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Invalid or expired verification token"
+      );
+    }
+
+    console.log("✅ Token valid, verifying user...");
+
+    user.isEmailVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    console.log("✅ User verified successfully");
+
+    return {
+      message: "Email verified successfully. You can now login.",
+    };
   },
 
   async login({ email, password, ip, ua }) {
@@ -59,6 +227,15 @@ export const AuthService = {
     }
     const ok = await user.comparePassword(password);
     if (!ok) throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+
+    // ✅ CHECK: Account có bị khoá không?
+    if (!user.isEmailVerified) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        // "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên."
+        "Please verify your email before logging in"
+      );
+    }
     // ⚠️ Truyền user để lấy đúng role khi ký JWT
     const tokens = await this.issueTokens(user, ip, ua);
     return {
@@ -154,7 +331,7 @@ export const AuthService = {
       to: email,
       subject: "Reset your uthStore password",
       html: `<p>Click to reset password:</p>
-           <p><a href="${config.clientUrl}/reset-password?token=${token}">Reset Password</a></p>
+           <p><a href="${config.clientUrl}/auth/reset-password?token=${token}">Reset Password</a></p>
            <p>Token valid for 30 minutes.</p>`,
     });
 

@@ -47,6 +47,29 @@ const UserSchema = new mongoose.Schema(
       y: { type: String, default: "" },
     },
     addresses: [AddressSchema],
+
+    // ✅ THÊM 3 DÒNG NÀY:
+    verificationToken: {
+      type: String,
+      select: false,
+    },
+    verificationTokenExpires: {
+      type: Date,
+      select: false,
+    },
+
+    // // ✅ ĐỔI default về FALSE cho customer:
+    // isEmailVerified: {
+    //   type: Boolean,
+    //   default: false, // ← Customer phải verify email
+    // },
+
+    // ✅ NEW: Lương (chỉ cho staff/admin)
+    salary: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
