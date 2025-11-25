@@ -2,7 +2,18 @@ import { Link, useLocation } from "react-router-dom";
 import { ADMIN_PATHS } from "../../../routes/paths";
 import { useAuth } from "../../../contexts/AuthContext";
 // 1. Import các icons từ lucide-react
-import { LayoutDashboard, Package, Box, Users, UserCog } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  Box,
+  Users,
+  UserCog,
+  MessageCircle,
+  FileChartColumn,
+  GalleryHorizontal,
+  TicketPercent,
+  MessageSquare,
+} from "lucide-react";
 
 export default function AdminSidebar() {
   const { pathname } = useLocation();
@@ -26,7 +37,11 @@ export default function AdminSidebar() {
       to: ADMIN_PATHS.ADMIN_PRODUCTS,
       icon: Box,
     },
-
+    {
+      label: "Quản lý đánh giá",
+      to: ADMIN_PATHS.ADMIN_REVIEWS,
+      icon: MessageCircle,
+    },
     {
       label: "Quản lý khách hàng",
       to: ADMIN_PATHS.ADMIN_CUSTOMERS,
@@ -37,6 +52,26 @@ export default function AdminSidebar() {
       to: ADMIN_PATHS.ADMIN_STAFFS,
       icon: UserCog,
       adminOnly: true, // Chỉ admin mới thấy
+    },
+    {
+      label: "Quản lý báo cáo",
+      to: ADMIN_PATHS.ADMIN_REPORTS,
+      icon: FileChartColumn,
+    },
+    {
+      label: "Quản lý banner",
+      to: ADMIN_PATHS.ADMIN_BANNERS,
+      icon: GalleryHorizontal,
+    },
+    {
+      label: "Quản lý mã giảm giá",
+      to: ADMIN_PATHS.ADMIN_COUPONS,
+      icon: TicketPercent,
+    },
+    {
+      label: "Tin nhắn khách hàng",
+      to: ADMIN_PATHS.ADMIN_CHATS,
+      icon: MessageSquare,
     },
   ];
 

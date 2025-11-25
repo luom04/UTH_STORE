@@ -1,4 +1,5 @@
-// src/components/SideMenu/PolicySideMenu.jsx
+// src/components/SideMenu/PolicySideMenu.jsx (Giữ nguyên, chỉ cleanup class cho gọn)
+
 import { NavLink } from "react-router-dom";
 import { PATHS } from "../../../routes/paths";
 
@@ -26,8 +27,10 @@ export default function PolicySideMenu({
   const menu = items?.length ? items : DEFAULT_MENU;
 
   return (
+    // Loại bỏ hidden md:block nếu muốn kiểm soát hoàn toàn trên layout
+    // Giữ nguyên thiết kế nền trắng và shadow
     <aside
-      className={`hidden md:block rounded-xl border border-gray-100 bg-white shadow-sm ${className}`}
+      className={`rounded-xl border border-gray-100 bg-white shadow-lg ${className}`}
     >
       {title ? (
         <div className="px-4 py-3 border-b border-gray-100">
@@ -42,10 +45,11 @@ export default function PolicySideMenu({
               to={it.path}
               className={({ isActive }) =>
                 [
-                  "block w-full px-4 py-3 text-left hover:text-blue-600 hover:underline",
+                  // Đổi hover:underline thành hover:bg-gray-100 để đẹp hơn trên nền trắng
+                  "block w-full px-4 py-3 text-left transition duration-150 ease-in-out",
                   isActive
-                    ? "bg-gray-50 font-medium text-gray-900"
-                    : "text-gray-700",
+                    ? "bg-indigo-50 font-medium text-indigo-700 border-l-4 border-indigo-600 pl-3" // Thêm border trái làm điểm nhấn active
+                    : "text-gray-700 hover:bg-gray-50",
                 ].join(" ")
               }
             >

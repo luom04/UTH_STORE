@@ -7,8 +7,6 @@ export const PRODUCT_CATEGORIES = {
   MAINBOARD: "mainboard",
   RAM: "ram",
   VGA: "vga",
-  // SSD: "ssd",
-  // HDD: "hdd",
   STORAGE: "storage",
   PSU: "psu",
   CASE: "case",
@@ -16,6 +14,11 @@ export const PRODUCT_CATEGORIES = {
   MONITOR: "monitor",
   KEYBOARD: "keyboard",
   MOUSE: "mouse",
+  CHAIR: "chair", // 🆕 GHẾ
+  HEADPHONE: "headphone", // 🆕 TAI NGHE
+  SPEAKER: "speaker", // 🆕 LOA
+  ACCESSORY: "accessories", //phụ kiện
+  SOFTWARE: "software",
 };
 
 // Template specs cho từng loại sản phẩm
@@ -956,15 +959,17 @@ export const SPECS_TEMPLATES = {
         "8TB",
         "10TB",
         "12TB",
+        "14TB",
+        "18TB",
       ],
-      required: true,
+      required: false,
     },
     {
       key: "formFactor",
       label: "Form Factor",
       type: "select",
       options: ["M.2 2280", "M.2 2260", "M.2 2242", "2.5 inch", "3.5 inch"],
-      required: true,
+      required: false,
     },
     {
       key: "interface",
@@ -977,7 +982,7 @@ export const SPECS_TEMPLATES = {
         "SATA III",
         "SATA II",
       ],
-      required: true,
+      required: false,
     },
     // ✅ SSD-specific fields
     {
@@ -1900,25 +1905,136 @@ export const SPECS_TEMPLATES = {
       placeholder: "12 tháng / 24 tháng",
     },
   ],
-};
+  // 🆕 GHẾ GAMING/VĂN PHÒNG
+  [PRODUCT_CATEGORIES.CHAIR]: [
+    {
+      key: "material",
+      label: "Chất liệu",
+      type: "text",
+      required: true,
+      placeholder: "VD: Lưới Gentry, Da PU, Vải nỉ",
+    },
+    {
+      key: "armrest",
+      label: "Tay vịn",
+      type: "text",
+      required: false,
+      placeholder: "VD: Kê tay 3D, 4D điều chỉnh, Cố định",
+    },
+    {
+      key: "mechanism",
+      label: "Cơ chế",
+      type: "text",
+      required: false,
+      placeholder: "VD: Ngả lưng True Tilt, Piston Class 3",
+    },
+    {
+      key: "max_load",
+      label: "Tải trọng tối đa",
+      type: "text",
+      required: false,
+      placeholder: "VD: 120kg, 150kg",
+    },
+    {
+      key: "dimensions",
+      label: "Kích thước",
+      type: "text",
+      required: false,
+      placeholder: "VD: 113-119 x 64 x 64 cm",
+    },
+    {
+      key: "wheel_size",
+      label: "Kích thước bánh xe",
+      type: "text",
+      required: false,
+      placeholder: "VD: 64cm, 60mm PU",
+    },
+  ],
 
-// // Danh sách categories để dropdown
-// export const CATEGORY_OPTIONS = [
-//   {
-//     value: PRODUCT_CATEGORIES.PC_BUILD,
-//     label: "🖥️ PC Build (Cấu hình hoàn chỉnh)",
-//   },
-//   { value: PRODUCT_CATEGORIES.LAPTOP, label: "💻 Laptop" },
-//   { value: PRODUCT_CATEGORIES.CPU, label: "🔲 CPU - Bộ vi xử lý" },
-//   { value: PRODUCT_CATEGORIES.MAINBOARD, label: "🔧 Mainboard - Bo mạch chủ" },
-//   { value: PRODUCT_CATEGORIES.RAM, label: "💾 RAM - Bộ nhớ" },
-//   { value: PRODUCT_CATEGORIES.VGA, label: "🎮 VGA - Card đồ họa" },
-//   { value: PRODUCT_CATEGORIES.SSD, label: "💿 SSD" },
-//   { value: PRODUCT_CATEGORIES.HDD, label: "💿 HDD" },
-//   { value: PRODUCT_CATEGORIES.PSU, label: "🔌 PSU - Nguồn" },
-//   { value: PRODUCT_CATEGORIES.CASE, label: "📦 Case - Vỏ máy" },
-//   { value: PRODUCT_CATEGORIES.COOLING, label: "❄️ Cooling - Tản nhiệt" },
-//   { value: PRODUCT_CATEGORIES.MONITOR, label: "🖥️ Monitor - Màn hình" },
-//   { value: PRODUCT_CATEGORIES.KEYBOARD, label: "⌨️ Keyboard - Bàn phím" },
-//   { value: PRODUCT_CATEGORIES.MOUSE, label: "🖱️ Mouse - Chuột" },
-// ];
+  [PRODUCT_CATEGORIES.HEADPHONE]: [
+    {
+      key: "connection",
+      label: "Kết nối",
+      type: "text",
+      required: true,
+      placeholder: "VD: Không dây 2.4GHz, USB-C, Jack 3.5mm",
+    },
+    {
+      key: "driver",
+      label: "Màng loa",
+      type: "text",
+      required: false,
+      placeholder: "VD: 53mm, 40mm, 50mm Neodymium",
+    },
+    {
+      key: "surround",
+      label: "Âm thanh vòm",
+      type: "text",
+      required: false,
+      placeholder: "VD: 7.1, 5.1, Stereo 2.0",
+    },
+    {
+      key: "battery",
+      label: "Thời lượng pin",
+      type: "text",
+      required: false,
+      placeholder: "VD: 120 giờ, 30 giờ, Không dây",
+    },
+    {
+      key: "frequency",
+      label: "Tần số đáp ứng",
+      type: "text",
+      required: false,
+      placeholder: "VD: 10Hz-21kHz, 20Hz-20kHz",
+    },
+    {
+      key: "wireless_range",
+      label: "Phạm vi không dây",
+      type: "text",
+      required: false,
+      placeholder: "VD: Lên đến 20m, 15m",
+    },
+  ],
+  // 🆕 LOA / SPEAKER
+  [PRODUCT_CATEGORIES.SPEAKER]: [
+    {
+      key: "power",
+      label: "Công suất",
+      type: "text",
+      required: true,
+      placeholder: "VD: 21W+21W, 50W, 100W RMS",
+    },
+    {
+      key: "driver",
+      label: "Cấu hình củ loa",
+      type: "text",
+      required: false,
+      placeholder: "VD: Tweeter 1-inch/Bass 4-inch, 2-way",
+    },
+    {
+      key: "frequency",
+      label: "Đáp tuyến tần số",
+      type: "text",
+      required: false,
+      placeholder: "VD: 60Hz-20KHz, 50Hz-22KHz",
+    },
+    {
+      key: "connection",
+      label: "Kết nối",
+      type: "text",
+      required: false,
+      placeholder: "VD: Bluetooth, TRS/RCA/AUX, USB",
+    },
+    {
+      key: "type",
+      label: "Loại loa",
+      type: "text",
+      required: false,
+      placeholder: "VD: 2.0, 2.1, 5.1, Soundbar, Bluetooth",
+    },
+  ],
+  //phụ kiện
+  [PRODUCT_CATEGORIES.ACCESSORY]: [],
+  // 🆕 PHẦN MỀM
+  [PRODUCT_CATEGORIES.SOFTWARE]: [],
+};

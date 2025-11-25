@@ -24,7 +24,9 @@ export class StaffService {
 
     const [items, total] = await Promise.all([
       User.find(filter)
-        .select("name email role isEmailVerified salary createdAt updatedAt") // ✅ Add salary
+        .select(
+          "name email role isEmailVerified isActive salary createdAt updatedAt"
+        ) // ✅ Add salary
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -38,8 +40,8 @@ export class StaffService {
         name: u.name || "",
         email: u.email,
         role: u.role,
-        active: u.isEmailVerified,
-        salary: u.salary || 0, // ✅ Add salary
+        active: u.isActive,
+        salary: u.salary || 0,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       })),
@@ -79,6 +81,7 @@ export class StaffService {
       role,
       salary: Number(salary) || 0, // ✅ Add salary
       isEmailVerified: true,
+      isActive: true, // ✅ Staff/admin tự động active
     });
 
     return {
@@ -87,7 +90,7 @@ export class StaffService {
       email: user.email,
       role: user.role,
       salary: user.salary, // ✅ Add salary
-      active: user.isEmailVerified,
+      active: user.isActive,
     };
   }
 
@@ -125,7 +128,7 @@ export class StaffService {
       email: staff.email,
       role: staff.role,
       salary: staff.salary, // ✅ Add salary
-      active: staff.isEmailVerified,
+      active: staff.isActive,
     };
   }
 
@@ -138,12 +141,12 @@ export class StaffService {
       throw new ApiError(httpStatus.NOT_FOUND, "Staff not found");
     }
 
-    staff.isEmailVerified = active;
+    staff.isActive = active;
     await staff.save();
 
     return {
       id: staff._id.toString(),
-      active: staff.isEmailVerified,
+      active: staff.isActive,
     };
   }
 

@@ -1,94 +1,113 @@
 // src/Features/Account/pages/Orders.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import SegmentTabs from "../components/SegmentTabs.jsx";
 import OrderCard from "../components/OrderCard.jsx";
 import OrdersEmpty from "../components/OrdersEmpty.jsx";
+import { useMyOrders } from "../../../hooks/useOrders.js";
 
 const TABS = [
   { key: "all", label: "Tất cả" },
-  { key: "processing", label: "Đang xử lý" },
+  { key: "pending", label: "Chờ xác nhận" },
+  { key: "confirmed", label: "Đã xác nhận" },
   { key: "shipping", label: "Đang vận chuyển" },
   { key: "completed", label: "Hoàn thành" },
-  { key: "cancelled", label: "Hủy" },
+  { key: "canceled", label: "Đã hủy" },
 ];
-
-const LS_KEY = "uth_orders";
-
-const readOrders = () => {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-};
 
 export default function Orders() {
   const [tab, setTab] = useState("all");
   const [q, setQ] = useState("");
-  const [orders, setOrders] = useState(() => readOrders());
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const statusParam = tab === "all" ? undefined : tab;
 
-  // seed demo 1 đơn lần đầu (xóa nếu không muốn)
+  // Debounce logic
   useEffect(() => {
-    if (orders.length === 0) {
-      const seed = [
-        {
-          id: "DH1000123",
-          createdAt: new Date().toISOString(),
-          status: "processing",
-          items: [
-            {
-              id: "p1",
-              title: "Laptop gaming MSI Katana 15",
-              image:
-                "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=400&auto=format&fit=crop",
-              qty: 1,
-              price: 20990000,
-            },
-          ],
-          total: 20990000,
-        },
-      ];
-      setOrders(seed);
-      localStorage.setItem(LS_KEY, JSON.stringify(seed));
-    }
-  }, []); // eslint-disable-line
+    const handler = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [q]);
 
+  const {
+    data: orders = [],
+    isLoading,
+    isError,
+  } = useMyOrders({
+    status: statusParam,
+    limit: 50,
+  });
+
+  // Lọc theo mã đơn HOẶC tên sản phẩm
   const filtered = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
     let data = orders;
-    if (tab !== "all") data = data.filter((o) => o.status === tab);
-    if (q.trim()) {
-      const k = q.trim().toLowerCase();
-      data = data.filter((o) => o.id.toLowerCase().includes(k));
+
+    if (debouncedQ.trim()) {
+      const k = debouncedQ.trim().toLowerCase();
+
+      data = data.filter((order) => {
+        // 1. Check mã đơn hàng
+        const matchesOrderNumber = (order.orderNumber || "")
+          .toLowerCase()
+          .includes(k);
+        if (matchesOrderNumber) {
+          return true;
+        }
+
+        // 2. Check tên sản phẩm (trong mảng items)
+        if (Array.isArray(order.items)) {
+          const matchesProductTitle = order.items.some((item) =>
+            (item.title || "").toLowerCase().includes(k)
+          );
+          if (matchesProductTitle) {
+            return true;
+          }
+        }
+
+        return false;
+      });
     }
+
     return data;
-  }, [orders, tab, q]);
+  }, [orders, debouncedQ]); // Lọc theo `debouncedQ`
 
   return (
     <div className="rounded-xl bg-white shadow-sm overflow-hidden">
       <SegmentTabs value={tab} onChange={setTab} tabs={TABS} />
 
+      {/* Ô tìm kiếm */}
       <div className="px-4 py-3 ">
         <div className="relative">
           <input
-            className="w-full h-11 rounded-lg border px-3 pr-24"
-            placeholder="Tìm đơn hàng theo Mã đơn hàng"
+            className="w-full h-11 rounded-lg border px-3 pl-10"
+            // THAY ĐỔI 1: Cập nhật placeholder
+            placeholder="Tìm theo Mã đơn hàng hoặc Tên sản phẩm"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 px-3 rounded-md bg-blue-600 text-white text-sm"
-            onClick={() => {}}
-          >
-            Tìm đơn hàng
-          </button>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Search size={18} />
+          </div>
         </div>
       </div>
 
+      {/* Danh sách đơn */}
       <div className="p-4 space-y-4">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="py-8 text-center text-gray-500">
+            Đang tải đơn hàng…
+          </div>
+        ) : isError ? (
+          <div className="py-8 text-center text-rose-500">
+            Không tải được danh sách đơn hàng. Vui lòng thử lại sau.
+          </div>
+        ) : filtered.length === 0 ? (
           <OrdersEmpty />
         ) : (
-          filtered.map((o) => <OrderCard key={o.id} o={o} />)
+          filtered.map((o) => <OrderCard key={o._id || o.orderNumber} o={o} />)
         )}
       </div>
     </div>

@@ -1,4 +1,5 @@
-// src/Features/Account/pages/Addresses.jsx
+// src/Features/Account/pages/Addresses.jsx (ĐÃ SỬA)
+
 import { useState } from "react";
 import EmptyState from "../components/EmptyState.jsx";
 import AddressCard from "../components/AddressCard.jsx";
@@ -43,6 +44,7 @@ export default function Addresses() {
   const onSave = async (e) => {
     e.preventDefault();
     if (!draft.fullname || !draft.phone || !draft.address || !draft.ward) {
+      // ⬅️ Dùng draft.name
       alert("Vui lòng nhập đủ thông tin & chọn Tỉnh/Quận/Phường.");
       return;
     }
@@ -116,8 +118,8 @@ export default function Addresses() {
                 className="rounded-lg border px-3 py-2"
                 placeholder="Họ tên"
                 value={draft.fullname}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, fullname: e.target.value }))
+                onChange={
+                  (e) => setDraft((d) => ({ ...d, fullname: e.target.value })) // ⬅️ Dùng name
                 }
               />
               <input

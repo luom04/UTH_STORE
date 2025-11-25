@@ -22,6 +22,9 @@ export const CategoryService = {
   /**
    * Lấy danh sách categories
    */
+  /**
+   * Lấy danh sách categories (SỬ DỤNG AGGREGATION ĐỂ TÍNH PRODUCTCOUNT CHÍNH XÁC)
+   */
   async list(queryParams = {}) {
     const {
       page = 1,
@@ -31,32 +34,58 @@ export const CategoryService = {
       parent,
     } = queryParams;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
+    const skip = (pageInt - 1) * limitInt;
 
-    // Build filter
+    // 1. Build filter for aggregation
     const filter = {};
     if (status) filter.status = status;
     if (parent !== undefined) {
       filter.parent = parent === "null" || parent === "" ? null : parent;
     }
 
-    const [items, total] = await Promise.all([
-      Category.find(filter)
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .populate("parent", "name slug")
-        .lean(),
-      Category.countDocuments(filter),
+    // 2. Aggregation Pipeline
+    const pipeline = [
+      { $match: filter }, // Lọc theo status/parent
+      { $sort: { [sort]: 1 } }, // Sắp xếp
+      // Tính productCount bằng cách join với Product collection
+      {
+        $lookup: {
+          from: Product.collection.name, // Tên collection 'products'
+          localField: "slug",
+          foreignField: "category",
+          as: "products", // Mảng tạm thời chứa sản phẩm
+        },
+      },
+      {
+        $addFields: {
+          // Ghi đè trường productCount bằng kích thước mảng products
+          productCount: { $size: "$products" },
+        },
+      },
+      { $project: { products: 0 } }, // Loại bỏ mảng sản phẩm chi tiết
+    ];
+
+    // 3. Lấy tổng số và items trong 1 Promise.all
+    const [items, totalResult] = await Promise.all([
+      Category.aggregate([
+        ...pipeline, // Lọc, sort, lookup, addFields
+        { $skip: skip }, // Phân trang
+        { $limit: limitInt },
+      ]).exec(),
+      Category.aggregate([{ $match: filter }, { $count: "total" }]).exec(),
     ]);
+
+    const total = totalResult.length > 0 ? totalResult[0].total : 0;
 
     return {
       items,
       meta: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageInt,
+        limit: limitInt,
         total,
-        totalPages: Math.ceil(total / parseInt(limit)),
+        totalPages: Math.ceil(total / limitInt),
       },
     };
   },

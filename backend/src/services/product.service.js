@@ -71,13 +71,35 @@ export const ProductService = {
       filter.brand = queryParams.brand;
     }
 
-    // ✅ Query với text score (để sort theo độ liên quan)
+    // Status filter
+    if (queryParams.status) {
+      filter.status = queryParams.status;
+    } else {
+      filter.status = "active";
+    }
+
+    // ✅ KHÔNG truyền projection trong find() nữa để tránh mix include/exclude
+    const query = Product.find(filter);
+
+    // ✅ Nếu FE có fields => select kiểu INCLUDE
+    if (queryParams.fields) {
+      const selectStr = String(queryParams.fields)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" ");
+
+      query.select(selectStr);
+    } else {
+      // ✅ Nếu không có fields => có thể exclude __v thoải mái
+      query.select("-__v");
+    }
+
     const [items, total] = await Promise.all([
-      Product.find(filter, { score: { $meta: "textScore" } })
-        .sort({ score: { $meta: "textScore" } }) // Sort theo relevance
+      query
+        .sort({ score: { $meta: "textScore" } }) // sort theo độ liên quan
         .skip(skip)
         .limit(limit)
-        .select("-__v")
         .lean(),
       Product.countDocuments(filter),
     ]);
@@ -92,7 +114,6 @@ export const ProductService = {
       },
     };
   },
-
   // Helper: Build filter từ query params (dùng cho countDocuments)
   buildFilterFromParams(params) {
     const filter = {};
@@ -107,8 +128,12 @@ export const ProductService = {
     // Brand filter
     if (params.brand) filter.brand = params.brand;
 
-    // Status filter
-    if (params.status) filter.status = params.status;
+    // 🔥 STATUS FILTER
+    if (params.status) {
+      filter.status = params.status;
+    } else {
+      filter.status = "active";
+    }
 
     // isFeatured filter
     if (params.isFeatured !== undefined) {
@@ -122,8 +147,6 @@ export const ProductService = {
       if (params.maxPrice) filter.price.$lte = Number(params.maxPrice);
     }
 
-    // ✅ KHÔNG search trong q ở đây (để ApiFeatures xử lý)
-
     return filter;
   },
 
@@ -131,6 +154,28 @@ export const ProductService = {
     const doc = await Product.findById(id);
     if (!doc) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
     return doc;
+  },
+
+  // 🆕 Get by slug
+  async getBySlug(slug) {
+    const doc = await Product.findOne({ slug, status: "active" });
+    if (!doc) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
+    return doc;
+  },
+
+  //🆕 Get by ID or Slug (helper method)
+  async getByIdOrSlug(param) {
+    console.log("🔍 [Service] getByIdOrSlug called with:", param);
+
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(param);
+
+    if (isObjectId) {
+      console.log("📌 [Service] Detected as ObjectId");
+      return this.getById(param);
+    } else {
+      console.log("📌 [Service] Detected as slug");
+      return this.getBySlug(param);
+    }
   },
 
   async update(id, data) {
@@ -162,5 +207,33 @@ export const ProductService = {
     doc.stock = next;
     await doc.save();
     return doc;
+  },
+
+  // ✅ NEW: search gợi ý cho dropdown
+  async searchSuggest(q, limit = 8, fields) {
+    const lim = Math.min(Math.max(parseInt(limit) || 8, 1), 20);
+    const filter = { status: "active" };
+
+    if (q && q.trim()) {
+      const regex = new RegExp(q.trim(), "i");
+      filter.$or = [
+        { title: regex },
+        { slug: regex },
+        { brand: regex },
+        { description: regex },
+      ];
+    }
+
+    const projection =
+      fields?.split(",").join(" ") ||
+      "title slug images price priceSale brand rating ratingCount discountPercent";
+
+    const items = await Product.find(filter)
+      .select(projection)
+      .sort({ sold: -1, updatedAt: -1 })
+      .limit(lim)
+      .lean();
+
+    return items;
   },
 };

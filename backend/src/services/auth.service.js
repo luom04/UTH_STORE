@@ -1,8 +1,10 @@
 //src/services/auth.service.js
+import { ROLES } from "../constants/roles.js";
 import httpStatus from "http-status";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
 import { sendVerificationEmail } from "../utils/sendEmail.js";
+import { Order } from "../models/order.model.js";
 import { EmailToken, RefreshToken } from "../models/token.model.js";
 import {
   signAccessToken,
@@ -118,126 +120,74 @@ export const AuthService = {
     };
   },
 
-  // ✅ FIX: verifyEmail - log để debug
-  // async verifyEmail(token) {
-  //   console.log("🔍 Verifying token:", token);
-  //   console.log("⏰ Current time:", new Date().toISOString());
-
-  //   const user = await User.findOne({
-  //     verificationToken: token,
-  //     verificationTokenExpires: { $gt: new Date() }, // ✅ So sánh với Date object
-  //   }).select("+verificationToken +verificationTokenExpires");
-
-  //   if (!user) {
-  //     console.log("❌ Token not found or expired");
-  //     throw new ApiError(
-  //       httpStatus.BAD_REQUEST,
-  //       "Invalid or expired verification token"
-  //     );
-  //   }
-
-  //   console.log(
-  //     "✅ Token valid, expires at:",
-  //     user.verificationTokenExpires.toISOString()
-  //   );
-
-  //   user.isEmailVerified = true;
-  //   user.verificationToken = undefined;
-  //   user.verificationTokenExpires = undefined;
-  //   await user.save();
-
-  //   return {
-  //     message: "Email verified successfully. You can now login.",
-  //   };
-  // },
-
   //mới thay
   // backend/src/services/auth.service.js
   async verifyEmail(token) {
-    console.log("🔍 Verifying token:", token);
-    console.log("⏰ Current time:", new Date().toISOString());
-
-    // ✅ First find without expiry check
-    const allUsers = await User.find({}).select(
-      "+verificationToken +verificationTokenExpires"
-    );
-    console.log(
-      "📊 All users with tokens:",
-      allUsers.map((u) => ({
-        email: u.email,
-        token: u.verificationToken?.substring(0, 10) + "...",
-        expires: u.verificationTokenExpires,
-      }))
-    );
-
-    // ✅ Find exact token match
-    const userByToken = await User.findOne({
-      verificationToken: token,
-    }).select("+verificationToken +verificationTokenExpires");
-
-    console.log("🔎 User found by token?", userByToken ? "YES" : "NO");
-    if (userByToken) {
-      console.log("📧 Email:", userByToken.email);
-      console.log("🔑 Token match:", userByToken.verificationToken === token);
-      console.log(
-        "⏰ Expires:",
-        userByToken.verificationTokenExpires?.toISOString()
-      );
-      console.log(
-        "⏰ Expired?",
-        userByToken.verificationTokenExpires < new Date()
-      );
-    }
-
-    // ✅ Now check with expiry
+    // 1. Tìm user có token khớp và chưa hết hạn
     const user = await User.findOne({
       verificationToken: token,
-      verificationTokenExpires: { $gt: new Date() },
+      verificationTokenExpires: { $gt: new Date() }, // Token phải còn hạn
     }).select("+verificationToken +verificationTokenExpires");
 
     if (!user) {
-      console.log("❌ Token not found or expired");
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Invalid or expired verification token"
+        "Mã xác thực không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại email."
       );
     }
 
-    console.log("✅ Token valid, verifying user...");
-
+    // 2. Update trạng thái
     user.isEmailVerified = true;
-    user.verificationToken = undefined;
+    user.verificationToken = undefined; // Xóa token sau khi dùng
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    console.log("✅ User verified successfully");
-
     return {
-      message: "Email verified successfully. You can now login.",
+      message: "Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.",
     };
   },
 
+  // src/services/auth.service.js
   async login({ email, password, ip, ua }) {
+    // 1. Tìm user
     const user = await User.findOne({ email }).select("+password");
-    if (!user)
-      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
-    // Phòng trường hợp user được tạo từ Google (không có password local)
-    if (!user.password) {
+    if (!user) {
       throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
     }
-    const ok = await user.comparePassword(password);
-    if (!ok) throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
 
-    // ✅ CHECK: Account có bị khoá không?
-    if (!user.isEmailVerified) {
+    // 2. ✅ KIỂM TRA TẠI KHOẢN BỊ KHÓA (ưu tiên cao nhất)
+    if (!user.isActive) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        // "Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên."
-        "Please verify your email before logging in"
+        "Your account has been deactivated. Please contact support."
       );
     }
-    // ⚠️ Truyền user để lấy đúng role khi ký JWT
+
+    // 3. Kiểm tra OAuth user
+    if (!user.password) {
+      throw new ApiError(
+        httpStatus.UNAUTHORIZED,
+        "This account uses Google login. Please sign in with Google."
+      );
+    }
+
+    // 4. So sánh password
+    const ok = await user.comparePassword(password);
+    if (!ok) {
+      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+    }
+
+    // 5. ✅ KIỂM TRA EMAIL VERIFICATION (chỉ với customer)
+    if (user.role === ROLES.CUSTOMER && !user.isEmailVerified) {
+      throw new ApiError(
+        httpStatus.FORBIDDEN,
+        "Please verify your email before logging in. Check your inbox for the verification link."
+      );
+    }
+
+    // 6. Issue tokens
     const tokens = await this.issueTokens(user, ip, ua);
+
     return {
       user: {
         id: user._id,
@@ -245,6 +195,8 @@ export const AuthService = {
         name: user.name,
         role: user.role,
         isEmailVerified: user.isEmailVerified,
+        isActive: user.isActive,
+        isStudent: user.isStudent, // 🆕 Trả về status
       },
       ...tokens,
     };
@@ -405,5 +357,107 @@ export const AuthService = {
       role: String(user.role || "").toLowerCase(), // 👈
       verified: user.isEmailVerified,
     };
+  },
+  async getMe(userId) {
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+    // 1. Tính tổng chi tiêu (Chỉ tính đơn hoàn thành)
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          user: user._id,
+          status: "completed",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalSpent: { $sum: "$grandTotal" },
+        },
+      },
+    ]);
+
+    const totalSpent = stats[0]?.totalSpent || 0;
+
+    // 2. Tính Rank (Logic giống hệt Admin Service)
+    let rank = "MEMBER";
+    if (totalSpent >= 100_000_000) rank = "DIAMOND";
+    else if (totalSpent >= 50_000_000) rank = "GOLD";
+    else if (totalSpent >= 10_000_000) rank = "SILVER";
+
+    // 3. Trả về User + Rank + TotalSpent
+    // Lưu ý: user.toJSON() để bỏ password, __v...
+    return {
+      ...user.toJSON(),
+      totalSpent,
+      rank,
+    };
+  },
+
+  async requestStudentVerify(userId, { studentIdImage, schoolName }) {
+    if (!studentIdImage || !schoolName) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Vui lòng cung cấp ảnh thẻ và tên trường"
+      );
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User không tồn tại");
+
+    // Cập nhật thông tin và chuyển trạng thái sang chờ duyệt
+    user.studentInfo = {
+      studentIdImage,
+      schoolName,
+      status: "pending", // 🟡 Chờ duyệt
+      rejectedReason: "", // Xóa lý do từ chối cũ (nếu có)
+      submittedAt: new Date(),
+    };
+
+    await user.save();
+    return user;
+  },
+
+  /**
+   * [ADMIN] Duyệt hoặc Từ chối yêu cầu
+   */
+  async verifyStudentRequest(targetUserId, { status, reason }) {
+    // Chỉ chấp nhận 2 trạng thái này từ Admin
+    if (!["verified", "rejected"].includes(status)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Trạng thái duyệt không hợp lệ"
+      );
+    }
+
+    const user = await User.findById(targetUserId);
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User không tồn tại");
+
+    if (status === "verified") {
+      // ✅ DUYỆT: Bật quyền lợi
+      user.isStudent = true;
+      user.studentInfo.status = "verified";
+      user.studentInfo.rejectedReason = "";
+    } else {
+      // ❌ TỪ CHỐI: Tắt quyền lợi
+      user.isStudent = false;
+      user.studentInfo.status = "rejected";
+      user.studentInfo.rejectedReason =
+        reason || "Thông tin không hợp lệ (Ảnh mờ/Không khớp)";
+    }
+
+    await user.save();
+    return user;
+  },
+
+  /**
+   * [ADMIN] Lấy danh sách các yêu cầu đang chờ (Pending)
+   */
+  async getPendingStudentRequests() {
+    // Chỉ lấy những user đang có status là pending
+    return await User.find({ "studentInfo.status": "pending" })
+      .select("name email phone studentInfo createdAt") // Chọn field cần thiết
+      .sort({ "studentInfo.submittedAt": 1 }); // Ai gửi trước hiện trước
   },
 };

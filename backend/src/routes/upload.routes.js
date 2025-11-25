@@ -9,15 +9,10 @@ import {
 
 const router = Router();
 
-/**
- * POST /api/uploads/sign-image
- * Lấy signature để client upload trực tiếp lên Cloudinary
- * Auth: Admin hoặc Staff
- */
 router.post(
   "/sign-image",
   passport.authenticate("jwt", { session: false }),
-  requireRoles("admin", "staff"),
+  requireRoles("admin", "staff", "customer"),
   getSignedParams // ✅ Dùng controller (có logic ký đúng)
 );
 

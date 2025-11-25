@@ -22,14 +22,19 @@ const CategorySchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
-    // image: {
-    //   type: String,
-    //   default: "",
-    // },
-    // icon: {
-    //   type: String, // Icon class name (lucide-react hoặc emoji)
-    //   default: "",
-    // },
+    image: {
+      type: String,
+      default: "",
+    },
+    banner: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    icon: {
+      type: String, // Icon class name (lucide-react)
+      default: "Blocks",
+    },
     // Parent category (nếu muốn làm nested categories)
     parent: {
       type: mongoose.Schema.Types.ObjectId,

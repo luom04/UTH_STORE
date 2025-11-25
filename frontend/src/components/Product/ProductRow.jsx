@@ -6,71 +6,24 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "./ProductCard.jsx";
 import { Link } from "react-router-dom";
 
-const MOCK_PRODUCTS = [
-  {
-    id: "p1",
-    title: "PC GVN i5-12400F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=800&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    chips: ["i5 12400F", "B760", "16GB", "500GB", "RTX 3050"],
-  },
-  {
-    id: "p2",
-    title: "PC GVN i3-12100F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=800&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    chips: ["i3 12100F", "H610", "8GB", "250GB", "RTX 3050"],
-  },
-  {
-    id: "p3",
-    title: "PC GVN x MSI PROJECT ZERO WHITE",
-    image:
-      "https://images.unsplash.com/photo-1593642634367-d91a1355875?q=80&w=800&auto=format&fit=crop",
-    price: 30990000,
-    oldPrice: 33020000,
-    chips: ["i5 14400F", "B760", "16GB", "1TB", "RTX 4060"],
-  },
-  {
-    id: "p4",
-    title: "PC GVN i3-12100F / RX 6500XT",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=800&auto=format&fit=crop",
-    price: 10490000,
-    oldPrice: 11430000,
-    chips: ["i3 12100F", "RX 6500XT", "8GB", "250GB"],
-  },
-  {
-    id: "p5",
-    title: "PC GVN i5-12400F / RTX 3060",
-    image:
-      "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=800&auto=format&fit=crop",
-    price: 16890000,
-    oldPrice: 18620000,
-    chips: ["i5 12400F", "B760", "16GB", "500GB", "RTX 3060"],
-  },
-  {
-    id: "p6",
-    title: "PC GVN i5-13400F / RTX 4060",
-    image:
-      "https://images.unsplash.com/photo-1614064641938-3bbee52958a5?q=80&w=800&auto=format&fit=crop",
-    price: 21990000,
-    oldPrice: 23990000,
-    chips: ["i5 13400F", "B760", "16GB", "500GB", "RTX 4060"],
-  },
-];
-
-export default function ProductRow({ title, viewAllHref, products }) {
-  const data = products?.length ? products : MOCK_PRODUCTS; // ← fallback
-  // cấu hình: 5 card/khung + khoảng cách
+export default function ProductRow({
+  title,
+  viewAllHref,
+  products,
+  loading,
+  error,
+}) {
+  const data = Array.isArray(products) ? products : [];
   const VISIBLE = 5;
-  const GAP = 16; // px (tailwind gap-4)
+  const GAP = 16;
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: false, align: "start", dragFree: true },
+    {
+      loop: false,
+      align: "start",
+      dragFree: true,
+      containScroll: "trimSnaps", // 🔥 THÊM: Tối ưu hiệu suất
+    },
     [
       Autoplay({
         delay: 3500,
@@ -102,7 +55,6 @@ export default function ProductRow({ title, viewAllHref, products }) {
   const prev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const next = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
-  // width mỗi item = (100% - gap*(VISIBLE-1)) / VISIBLE  -> vừa khít 5 thẻ
   const itemStyle = useMemo(
     () => ({
       flex: `0 0 calc((100% - ${GAP * (VISIBLE - 1)}px) / ${VISIBLE})`,
@@ -112,9 +64,8 @@ export default function ProductRow({ title, viewAllHref, products }) {
   );
 
   return (
-    <section className="rounded-xl bg-white shadow-sm ">
-      {/* header (bỏ 'Trả góp 0%') */}
-      <div className="flex items-center justify-between px-4 py-3 cursor-pointer">
+    <section className="rounded-xl bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-3">
         <h2 className="text-lg font-bold">{title}</h2>
         <Link
           to={viewAllHref}
@@ -126,21 +77,43 @@ export default function ProductRow({ title, viewAllHref, products }) {
 
       <div className="relative p-4">
         <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex" style={{ gap: GAP }}>
-            {data.map((p) => (
-              <div key={p.id} style={itemStyle} className="h-full ">
-                <ProductCard p={p} />
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex" style={{ gap: GAP, alignItems: "stretch" }}>
+              {" "}
+              {/* 🔥 THÊM align-items: stretch */}
+              {Array.from({ length: VISIBLE }).map((_, i) => (
+                <div
+                  key={i}
+                  style={itemStyle}
+                  className="h-full flex" // 🔥 THÊM display: flex
+                >
+                  <div className="h-64 rounded-xl bg-gray-100 animate-pulse w-full" />{" "}
+                  {/* 🔥 THÊM w-full */}
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-6 text-red-600">Không tải được dữ liệu.</div>
+          ) : (
+            // Thay đổi hoàn toàn cách render
+            <div
+              className="grid grid-flow-col auto-cols-[calc((100%-64px)/5)] gap-4" // 5 items, gap 16px = 64px
+              style={{ alignItems: "stretch" }}
+            >
+              {data.map((p) => (
+                <div key={p.slug || p.id} className="h-full">
+                  <ProductCard p={p} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Prev / Next */}
         {canPrev && (
           <button
             onClick={prev}
             aria-label="Trước"
-            className="group absolute left-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white shadow-md ring-1 ring-black/5 hover:bg-gray-50"
+            className="group absolute left-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white shadow-md ring-1 ring-black/5 hover:bg-gray-50 z-10" // 🔥 THÊM z-10
           >
             <ChevronLeft className="transition group-active:-translate-x-[1px]" />
           </button>
@@ -149,7 +122,7 @@ export default function ProductRow({ title, viewAllHref, products }) {
           <button
             onClick={next}
             aria-label="Tiếp theo"
-            className="group absolute right-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white shadow-md ring-1 ring-black/5 hover:bg-gray-50"
+            className="group absolute right-2 top-1/2 -translate-y-1/2 grid h-9 w-9 place-items-center rounded-full bg-white shadow-md ring-1 ring-black/5 hover:bg-gray-50 z-10" // 🔥 THÊM z-10
           >
             <ChevronRight className="transition group-active:translate-x-[1px]" />
           </button>

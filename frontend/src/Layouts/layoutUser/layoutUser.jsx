@@ -1,3 +1,4 @@
+//src/Layouts/layoutUser/layoutUser.jsx
 import { useState } from "react";
 import { Toaster } from "react-hot-toast";
 import Header from "../../components/Header/Header.jsx";
@@ -5,7 +6,7 @@ import Footer from "../../components/Footer/Footer.jsx";
 import Backdrop from "../../components/Backdrop/Backdrop.jsx";
 import SidebarNav_Backdrop from "../../components/NavBar/SidebarNav_Backdrop.jsx";
 import { AnimatePresence } from "framer-motion";
-
+import ChatWidget from "../../components/Chat/ChatWidget.jsx";
 export default function Layout({
   children,
   noHeader = false,
@@ -42,6 +43,7 @@ export default function Layout({
 
       {/* 3. THÊM COMPONENT Toaster */}
       <Toaster position="top-center" />
+      <ChatWidget />
     </div>
   );
 }

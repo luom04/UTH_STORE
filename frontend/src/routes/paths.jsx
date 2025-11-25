@@ -35,10 +35,7 @@ export const PATHS = {
   ADDRESSES: "/account/addresses",
   ACCOUNT_ORDERS: "/account/orders",
 
-  // staff (nhân viên)
-  STAFF_DASHBOARD: "/staff", // 👈 entry cho luồng STAFF
-
-  // trạng thái/khác
+  // trạng thái khác
   FORBIDDEN: "/403", // 👈 cho guard từ chối quyền
   NOT_FOUND: "*", // 👈 404
 };
@@ -50,5 +47,10 @@ export const ADMIN_PATHS = {
   ADMIN_ORDER_DETAIL: "/admin/orders/:id",
   ADMIN_PRODUCTS: "/admin/products",
   ADMIN_CUSTOMERS: "/admin/customers",
-  ADMIN_STAFFS: "/admin/staffs", // 👈 thêm trang quản lý nhân viên
+  ADMIN_STAFFS: "/admin/staffs",
+  ADMIN_REVIEWS: "/admin/reviews",
+  ADMIN_REPORTS: "/admin/reports",
+  ADMIN_BANNERS: "/admin/banners",
+  ADMIN_COUPONS: "/admin/coupons",
+  ADMIN_CHATS: "/admin/chats",
 };

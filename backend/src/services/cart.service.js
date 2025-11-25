@@ -1,107 +1,200 @@
-import httpStatus from "http-status";
-import { ApiError } from "../utils/apiError.js";
+// src/services/cart.service.js
 import { Cart } from "../models/cart.model.js";
 import { Product } from "../models/product.model.js";
+import { ApiError } from "../utils/apiError.js";
+import httpStatus from "http-status";
 
-function pickImage(images = []) {
-  return images?.[0] || "";
-}
-function effPrice(p) {
-  return typeof p.priceSale === "number" && p.priceSale >= 0
-    ? p.priceSale
-    : p.price;
-}
+export class CartService {
+  /**
+   * Lấy hoặc tạo giỏ hàng
+   */
+  static async getOrCreate(userId) {
+    let cart = await Cart.findOne({ user: userId }).populate({
+      path: "items.product",
+      select:
+        "title priceSale price images stock slug studentDiscountAmount  gifts",
+    });
 
-function recompute(cart) {
-  cart.itemsTotal = cart.items.reduce((s, it) => s + it.price * it.qty, 0);
-  cart.grandTotal = cart.itemsTotal + (cart.shippingFee || 0);
-  return cart;
-}
-
-export const CartService = {
-  async getOrCreate(userId) {
-    let cart = await Cart.findOne({ user: userId });
-    if (!cart) cart = await Cart.create({ user: userId, items: [] });
-    return cart;
-  },
-
-  async addItem(userId, { productId, qty = 1, options }) {
-    const product = await Product.findById(productId);
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
-    if (product.stock < qty)
-      throw new ApiError(httpStatus.BAD_REQUEST, "Not enough stock");
-
-    const cart = await this.getOrCreate(userId);
-
-    // nếu item cùng product + options -> tăng qty
-    const key = (o) => JSON.stringify(o || {});
-    const idx = cart.items.findIndex(
-      (it) =>
-        String(it.product) === String(productId) &&
-        key(it.options) === key(options)
-    );
-
-    if (idx >= 0) {
-      const newQty = cart.items[idx].qty + qty;
-      if (product.stock < newQty)
-        throw new ApiError(httpStatus.BAD_REQUEST, "Exceeds stock");
-      cart.items[idx].qty = newQty;
-    } else {
-      cart.items.push({
-        product: product._id,
-        title: product.title,
-        price: effPrice(product),
-        image: pickImage(product.images),
-        qty,
-        options,
+    if (!cart) {
+      cart = await Cart.create({
+        user: userId,
+        items: [],
+        itemsTotal: 0,
+        shippingFee: 0,
+        grandTotal: 0,
       });
     }
-    recompute(cart);
+
+    // Tính lại total (phòng trường hợp giá đã thay đổi)
+    this.recalculate(cart);
     await cart.save();
-    return cart;
-  },
 
-  async putItem(userId, itemId, { qty, options }) {
-    const cart = await this.getOrCreate(userId);
-    const it = cart.items.id(itemId);
-    if (!it) throw new ApiError(httpStatus.NOT_FOUND, "Item not found");
+    return this.formatCart(cart);
+  }
 
-    const product = await Product.findById(it.product);
-    if (!product) throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
-
-    if (qty != null) {
-      if (qty < 1) throw new ApiError(httpStatus.BAD_REQUEST, "qty >= 1");
-      if (product.stock < qty)
-        throw new ApiError(httpStatus.BAD_REQUEST, "Exceeds stock");
-      it.qty = qty;
+  /**
+   * Thêm sản phẩm vào giỏ
+   */
+  static async addItem(userId, { productId, qty, options }) {
+    const product = await Product.findById(productId);
+    if (!product) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Product not found");
     }
-    if (options) it.options = options;
 
-    // cập nhật snapshot đề phòng giá thay đổi
-    it.title = product.title;
-    it.price = effPrice(product);
-    it.image = pickImage(product.images);
+    if (product.stock < qty) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Not enough stock");
+    }
 
-    recompute(cart);
+    let cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      cart = await Cart.create({
+        user: userId,
+        items: [],
+      });
+    }
+
+    // Kiểm tra sản phẩm đã có trong giỏ chưa
+    const existingItemIndex = cart.items.findIndex(
+      (item) => item.product.toString() === productId
+    );
+
+    if (existingItemIndex > -1) {
+      // Tăng số lượng
+      cart.items[existingItemIndex].qty += qty;
+    } else {
+      // Thêm mới
+      cart.items.push({
+        product: productId,
+        title: product.title,
+        price: product.priceSale || product.price,
+        image: product.images?.[0] || "",
+        qty,
+        options: options || {},
+      });
+    }
+
+    this.recalculate(cart);
     await cart.save();
-    return cart;
-  },
 
-  async removeItem(userId, itemId) {
-    const cart = await this.getOrCreate(userId);
-    const it = cart.items.id(itemId);
-    if (!it) throw new ApiError(httpStatus.NOT_FOUND, "Item not found");
-    it.deleteOne();
-    recompute(cart);
-    await cart.save();
-    return cart;
-  },
+    // Populate lại để trả về đầy đủ
+    await cart.populate({
+      path: "items.product",
+      select:
+        "title priceSale price images stock slug studentDiscountAmount gifts",
+    });
 
-  async clear(userId) {
-    const cart = await this.getOrCreate(userId);
-    cart.items = [];
-    recompute(cart);
+    return this.formatCart(cart);
+  }
+
+  /**
+   * Cập nhật số lượng
+   */
+  static async updateItem(userId, itemId, { qty, options }) {
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Cart not found");
+    }
+
+    const item = cart.items.id(itemId);
+    if (!item) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Item not found in cart");
+    }
+
+    // Kiểm tra stock
+    const product = await Product.findById(item.product);
+    if (product && qty > product.stock) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Not enough stock");
+    }
+
+    if (qty !== undefined) item.qty = Math.max(1, qty);
+    if (options !== undefined) item.options = options;
+
+    this.recalculate(cart);
     await cart.save();
-    return cart;
-  },
-};
+
+    await cart.populate({
+      path: "items.product",
+      select:
+        "title priceSale price images stock slug studentDiscountAmount gifts",
+    });
+
+    return this.formatCart(cart);
+  }
+
+  /**
+   * Xóa sản phẩm khỏi giỏ
+   */
+  static async removeItem(userId, itemId) {
+    const cart = await Cart.findOne({ user: userId });
+    if (!cart) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Cart not found");
+    }
+
+    cart.items = cart.items.filter((item) => item._id.toString() !== itemId);
+
+    this.recalculate(cart);
+    await cart.save();
+
+    await cart.populate({
+      path: "items.product",
+      select:
+        "title priceSale price images stock slug studentDiscountAmount gifts",
+    });
+
+    return this.formatCart(cart);
+  }
+
+  /**
+   * Xóa toàn bộ giỏ hàng
+   */
+  static async clear(userId) {
+    const cart = await Cart.findOne({ user: userId });
+    if (cart) {
+      cart.items = [];
+      cart.itemsTotal = 0;
+      cart.grandTotal = 0;
+      await cart.save();
+    }
+    return { message: "Cart cleared" };
+  }
+
+  /**
+   * Tính lại tổng tiền
+   */
+  static recalculate(cart) {
+    cart.itemsTotal = cart.items.reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    );
+
+    // TODO: Tính phí ship (có thể dựa vào địa chỉ)
+    cart.shippingFee = cart.itemsTotal > 500000 ? 0 : 50000; // Free ship > 500k
+
+    cart.grandTotal = cart.itemsTotal + cart.shippingFee;
+  }
+
+  /**
+   * Format response
+   */
+  static formatCart(cart) {
+    return {
+      items: cart.items.map((item) => ({
+        id: item._id.toString(),
+        productId: item.product._id?.toString() || item.product.toString(),
+        title: item.product.title || item.title,
+        price: item.price,
+        image: item.product.images?.[0] || item.image,
+        qty: item.qty,
+        stock: item.product.stock,
+        slug: item.product.slug,
+        subtotal: item.price * item.qty,
+        studentDiscountAmount: Number(item.product.studentDiscountAmount || 0),
+        gifts: Array.isArray(item.product.gifts) ? item.product.gifts : [],
+      })),
+      itemsTotal: cart.itemsTotal,
+      shippingFee: cart.shippingFee,
+      grandTotal: cart.grandTotal,
+      itemCount: cart.items.length,
+    };
+  }
+}

@@ -1,3 +1,4 @@
+//src/models/order.model.js
 import mongoose from "mongoose";
 
 const OrderItemSchema = new mongoose.Schema(
@@ -8,9 +9,20 @@ const OrderItemSchema = new mongoose.Schema(
       required: true,
     },
     title: String,
-    price: Number,
+    // ✅ giá sau HSSV (giá thực trả)
+    price: { type: Number, required: true },
+
+    // ✅ snapshot để hiển thị "giá gốc trước HSSV"
+    originalPrice: { type: Number, default: 0 },
+
+    // ✅ snapshot giảm HSSV theo từng sp
+    studentDiscountPerUnit: { type: Number, default: 0 },
+
+    // ✅ để FE dùng link đúng
+    slug: String,
     image: String,
     qty: { type: Number, default: 1, min: 1 },
+    subtotal: { type: Number, required: true },
     options: { type: mongoose.Schema.Types.Mixed },
   },
   { _id: false }
@@ -43,7 +55,7 @@ const StatusHistorySchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
-    orderNumber: { type: String, unique: true, index: true }, // ví dụ: UTH-20251010-000123
+    orderNumber: { type: String, unique: true, index: true },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -53,6 +65,8 @@ const OrderSchema = new mongoose.Schema(
     items: { type: [OrderItemSchema], required: true },
     itemsTotal: { type: Number, required: true },
     shippingFee: { type: Number, default: 0 },
+    couponCode: { type: String, uppercase: true, trim: true },
+    discountAmount: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
     grandTotal: { type: Number, required: true },
     currency: { type: String, default: "VND" },
@@ -63,7 +77,7 @@ const OrderSchema = new mongoose.Schema(
     paymentMethod: { type: String, enum: ["cod", "online"], default: "cod" },
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "paid", "refunded"],
+      enum: ["unpaid", "paid", "refunded", "pending"],
       default: "unpaid",
       index: true,
     },
@@ -81,9 +95,16 @@ const OrderSchema = new mongoose.Schema(
       index: true,
     },
 
+    // 🔥 Thông tin hủy đơn (thêm mới)
+    canceledAt: { type: Date },
+    cancelReason: { type: String, trim: true },
+    canceledByType: {
+      type: String,
+      enum: ["customer", "admin", "system"],
+    },
+
     statusHistory: { type: [StatusHistorySchema], default: [] },
 
-    // auto-cancel nếu quá hạn thanh toán (optional)
     expiresAt: { type: Date, index: { expireAfterSeconds: 0 }, default: null },
 
     gateway: {
@@ -91,6 +112,7 @@ const OrderSchema = new mongoose.Schema(
       transactionId: String,
       raw: mongoose.Schema.Types.Mixed,
     },
+    studentDiscountAmount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

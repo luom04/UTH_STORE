@@ -7,7 +7,7 @@ export default function SegmentTabs({ value, onChange, tabs }) {
         return (
           <button
             key={t.key}
-            className="group relative pb-3 font-semibold text-sm md:text-base transition-colors duration-200"
+            className="group relative pb-3 font-semibold text-sm md:text-base transition-colors duration-200 hover:cursor-pointer"
             onClick={() => onChange(t.key)}
           >
             <span

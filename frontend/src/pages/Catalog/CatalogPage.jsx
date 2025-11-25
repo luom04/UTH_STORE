@@ -1,446 +1,208 @@
 // src/pages/Catalog/CatalogPage.jsx
-import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import ProductCard from "../../components/product/ProductCard.jsx";
+import { useMemo } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import ProductCard from "../../components/Product/ProductCard.jsx";
+import CategoriesSection from "../../components/Categories/CategoriesSection.jsx";
+import { useCatalogProducts } from "../../hooks/useProductsPublic.js";
+import { useCategoryBySlug } from "../../hooks/useCategories.js";
+import Button from "../../components/Button/Button.jsx";
+const PAGE_SIZE = 20;
 
-// ===== Mock: bạn có thể thay bằng react-query sau này
-const MOCK_PRODUCTS = [
-  {
-    id: "p1",
-    title: "PC GVN i5-12400F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=800&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    chips: ["i5 12400F", "B760", "16GB", "500GB", "RTX 3050"],
-  },
-  {
-    id: "p2",
-    title: "PC GVN i3-12100F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=800&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    chips: ["i3 12100F", "H610", "8GB", "250GB", "RTX 3050"],
-  },
-  {
-    id: "p3",
-    title: "PC GVN x MSI PROJECT ZERO WHITE",
-    image:
-      "https://images.unsplash.com/photo-1593642634367-d91a1355875?q=80&w=800&auto=format&fit=crop",
-    price: 30990000,
-    oldPrice: 33020000,
-    chips: ["i5 14400F", "B760", "16GB", "1TB", "RTX 4060"],
-  },
-  {
-    id: "p4",
-    title: "PC GVN i3-12100F / RX 6500XT",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=800&auto=format&fit=crop",
-    price: 10490000,
-    oldPrice: 11430000,
-    chips: ["i3 12100F", "RX 6500XT", "8GB", "250GB"],
-  },
-  {
-    id: "p5",
-    title: "PC GVN i5-12400F / RTX 3060",
-    image:
-      "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=800&auto=format&fit=crop",
-    price: 16890000,
-    oldPrice: 18620000,
-    chips: ["i5 12400F", "B760", "16GB", "500GB", "RTX 3060"],
-  },
-  {
-    id: "p6",
-    title: "PC GVN i5-13400F / RTX 4060",
-    image:
-      "https://images.unsplash.com/photo-1614064641938-3bbee52958a5?q=80&w=800&auto=format&fit=crop",
-    price: 21990000,
-    oldPrice: 23990000,
-    chips: ["i5 13400F", "B760", "16GB", "500GB", "RTX 4060"],
-  },
-];
-
-// hoặc gom từ backend thực tế
-
-// ---------- Helpers ----------
-const BRANDS = [
-  "ASUS",
-  "Acer",
-  "MSI",
-  "Lenovo",
-  "HP",
-  "Dell",
-  "LG",
-  "Gigabyte",
-  "Razer",
-  "Leobog",
-  "Keychron",
-];
-
-const parseInch = (txt = "") => {
-  // 15.6, 24 inch, 27", 34-inch
-  const m = String(txt).match(/(\d{2}(?:\.\d)?)\s*(?:inch|"|-inch)/i); // Sửa ở đây
-  return m ? m[1] : null;
-};
-const hasGPU = (c) => /(RTX|GTX|RX)\s*\d/i.test(c);
-const hasCPU = (c) => /(i[3579]-?\d{4,5}|Ryzen\s?\d)/i.test(c);
-
-function buildFacets(list) {
-  const brands = new Set();
-  const inches = new Set();
-  const cpus = new Set();
-  const gpus = new Set();
-  const others = new Set();
-
-  list.forEach((p) => {
-    // brand từ title
-    const b = BRANDS.find((b) => new RegExp(`\\b${b}\\b`, "i").test(p.title));
-    if (b) brands.add(b);
-
-    // inch từ chips hoặc title
-    const inchFromTitle = parseInch(p.title);
-    if (inchFromTitle) inches.add(inchFromTitle);
-    p.chips?.forEach((ch) => {
-      const inch = parseInch(ch);
-      if (inch) inches.add(inch);
-      if (hasCPU(ch)) cpus.add(ch);
-      else if (hasGPU(ch)) gpus.add(ch);
-      else others.add(ch);
-    });
-  });
-
-  // Lọc others: bỏ token quá chung chung
-  const bad = [
-    /^RGB$/i,
-    /^Wireless$/i,
-    /^\d+GB$/i,
-    /^\d+TB$/i,
-    /^H61/i,
-    /^B\d+/i,
-  ];
-  const othersClean = [...others].filter((o) => !bad.some((r) => r.test(o)));
-
-  return {
-    price: { key: "price", label: "Giá" },
-    brand:
-      brands.size > 0
-        ? { key: "brand", label: "Hãng", options: [...brands].sort() }
-        : null,
-    inch:
-      inches.size > 1
-        ? {
-            key: "inch",
-            label: "Kích thước",
-            options: [...inches]
-              .sort((a, b) => parseFloat(a) - parseFloat(b))
-              .map((i) => `${i} inch`),
-          }
-        : null,
-    cpu:
-      cpus.size > 1 ? { key: "cpu", label: "CPU", options: [...cpus] } : null,
-    gpu:
-      gpus.size > 1 ? { key: "gpu", label: "GPU", options: [...gpus] } : null,
-    misc:
-      othersClean.length > 2
-        ? {
-            key: "misc",
-            label: "Thuộc tính",
-            options: othersClean.slice(0, 20),
-          }
-        : null,
-  };
-}
-
-function applyFilters(list, filters, price) {
-  return list.filter((p) => {
-    // price
-    if (price) {
-      const ok = p.price >= price.min && p.price <= price.max;
-      if (!ok) return false;
-    }
-    // brand
-    if (filters.brand?.length) {
-      const ok = filters.brand.some((b) =>
-        new RegExp(`\\b${b}\\b`, "i").test(p.title)
-      );
-      if (!ok) return false;
-    }
-    // inch
-    if (filters.inch?.length) {
-      const ptoks = new Set(
-        [parseInch(p.title), ...(p.chips?.map(parseInch) ?? [])]
-          .filter(Boolean)
-          .map((i) => `${i} inch`)
-      );
-      const ok = filters.inch.some((v) => ptoks.has(v));
-      if (!ok) return false;
-    }
-    // cpu
-    if (filters.cpu?.length) {
-      const ok = filters.cpu.some((v) =>
-        p.chips?.some((c) => c.toLowerCase() === v.toLowerCase())
-      );
-      if (!ok) return false;
-    }
-    // gpu
-    if (filters.gpu?.length) {
-      const ok = filters.gpu.some((v) =>
-        p.chips?.some((c) => c.toLowerCase() === v.toLowerCase())
-      );
-      if (!ok) return false;
-    }
-    // misc (any token in chips)
-    if (filters.misc?.length) {
-      const set = new Set(p.chips || []);
-      const ok = filters.misc.some((v) => set.has(v));
-      if (!ok) return false;
-    }
-    return true;
-  });
-}
-
-// ---------- Modal ----------
-function Overlay({ open, onClose, children }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-40">
-      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="absolute left-1/2 top-16 -translate-x-1/2 w-[min(680px,92vw)] rounded-2xl bg-white shadow-xl">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function ChoiceGrid({ options = [], selected = [], onToggle }) {
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {options.map((op) => (
-        <button
-          key={op}
-          onClick={() => onToggle(op)}
-          className={
-            "rounded-lg border px-3 py-2 text-sm " +
-            (selected.includes(op)
-              ? "border-emerald-500 bg-emerald-50"
-              : "hover:bg-gray-50")
-          }
-        >
-          {op}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PriceModal({ open, onClose, priceRange, onApply }) {
-  const [min, setMin] = useState(priceRange.min);
-  const [max, setMax] = useState(priceRange.max);
-  const canApply = min <= max;
-  return (
-    <Overlay open={open} onClose={onClose}>
-      <div className="p-5">
-        <h3 className="text-lg font-semibold mb-4">Chọn khoảng giá</h3>
-        <div className="flex gap-3">
-          <input
-            className="w-1/2 rounded-lg border px-3 py-2"
-            type="number"
-            value={min}
-            onChange={(e) => setMin(+e.target.value || 0)}
-          />
-          <input
-            className="w-1/2 rounded-lg border px-3 py-2"
-            type="number"
-            value={max}
-            onChange={(e) => setMax(+e.target.value || 0)}
-          />
-        </div>
-        <div className="mt-5 flex justify-between">
-          <button
-            onClick={() => {
-              setMin(priceRange.min);
-              setMax(priceRange.max);
-            }}
-            className="rounded-lg border px-4 py-2"
-          >
-            Bỏ chọn
-          </button>
-          <button
-            disabled={!canApply}
-            onClick={() => {
-              onApply({ min, max });
-              onClose();
-            }}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
-          >
-            Xem kết quả
-          </button>
-        </div>
-      </div>
-    </Overlay>
-  );
-}
-
-function OptionsModal({
-  open,
-  onClose,
-  title,
-  facetKey,
-  options,
-  selected = [],
-  onApply,
-}) {
-  const [local, setLocal] = useState(selected);
-  const toggle = (v) =>
-    setLocal((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v]));
-  return (
-    <Overlay open={open} onClose={onClose}>
-      <div className="p-5">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        <ChoiceGrid options={options} selected={local} onToggle={toggle} />
-        <div className="mt-5 flex justify-between">
-          <button
-            onClick={() => setLocal([])}
-            className="rounded-lg border px-4 py-2"
-          >
-            Bỏ chọn
-          </button>
-          <button
-            disabled={local.length === 0}
-            onClick={() => {
-              onApply(facetKey, local);
-              onClose();
-            }}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-white disabled:opacity-50"
-          >
-            Xem kết quả
-          </button>
-        </div>
-      </div>
-    </Overlay>
-  );
-}
-
-// ---------- Main ----------
 export default function CatalogPage() {
   const { slug } = useParams();
+  const [sp, setSp] = useSearchParams();
+  const page = Number(sp.get("page") || 1);
+  const limit = Number(sp.get("limit") || PAGE_SIZE);
+  const sort = sp.get("sort") || "-updatedAt";
 
-  const allProducts = MOCK_PRODUCTS;
+  const categorySlug = decodeURIComponent(slug || "").toLowerCase();
 
-  // Phạm vi giá mặc định theo data
-  const minP = Math.min(...allProducts.map((p) => p.price));
-  const maxP = Math.max(...allProducts.map((p) => p.price));
+  const { category, isLoading: isLoadingCategory } =
+    useCategoryBySlug(categorySlug);
 
-  const [filters, setFilters] = useState({
-    brand: [],
-    inch: [],
-    cpu: [],
-    gpu: [],
-    misc: [],
+  const { data, isLoading, isError, isFetching } = useCatalogProducts({
+    page,
+    limit,
+    sort,
+    category: categorySlug,
+    fields:
+      "title,slug,images,price,priceSale,discountPercent,brand,category,specs,rating,ratingCount,reviewsCount",
   });
-  const [price, setPrice] = useState({ min: minP, max: maxP });
 
-  const facets = useMemo(() => buildFacets(allProducts), [allProducts]);
+  const list = data?.list || [];
+  const meta = data?.meta || { page, limit };
 
-  const filtered = useMemo(
-    () => applyFilters(allProducts, filters, price),
-    [allProducts, filters, price]
-  );
+  const view = useMemo(() => {
+    return list.map((p) => {
+      return {
+        id: p.id || p._id,
+        slug: p.slug,
+        title: p.title,
+        image:
+          Array.isArray(p.images) && p.images.length
+            ? p.images[0]
+            : p.image || "/no-image.png",
+        images: p.images || [],
+        price: p.price,
+        priceSale: p.priceSale,
+        discountPercent: p.discountPercent || 0,
+        rating: p.rating || 0,
+        ratingCount: p.ratingCount || p.reviewsCount || 0,
+        specs: p.specs || {},
+        category: p.category,
+        brand: p.brand,
+      };
+    });
+  }, [list]);
 
-  // phân trang “xem thêm”
-  const [visible, setVisible] = useState(15);
-  const canMore = filtered.length > visible;
-  const showing = filtered.slice(0, visible);
+  const canLoadMore = (meta?.limit ?? limit) <= list.length;
 
-  // modal states
-  const [openPrice, setOpenPrice] = useState(false);
-  const [openFacet, setOpenFacet] = useState(null); // {key, label, options}
+  const onLoadMore = () => {
+    const next = new URLSearchParams(sp);
+    next.set("limit", String(limit + PAGE_SIZE));
+    setSp(next, { replace: true });
+  };
 
-  const applyFacet = (key, values) =>
-    setFilters((f) => ({ ...f, [key]: values }));
-
-  // Chip đã chọn -> viền xanh
-  const picked = (key) => filters[key]?.length > 0;
+  const categoryDisplayName = category?.name || categorySlug;
 
   return (
-    <div className="max-w-6xl mx-auto px-3 py-6">
-      {/* Banner nhỏ theo slug (optional) */}
-      <div className="rounded-xl bg-gradient-to-r from-indigo-50 to-pink-50 border p-4 mb-4">
-        <div className="text-sm text-gray-500">Danh mục</div>
-        <h1 className="text-2xl font-bold">{slug || "collections"}</h1>
+    <div className="overflow-x-hidden">
+      {" "}
+      {/* ⬅️ chặn scroll ngang toàn trang */}
+      {/* Banner (full-bleed, nằm ngoài container để full screen) */}
+      <div className="mb-6">
+        {isLoadingCategory ? (
+          // Skeleton full-bleed
+          <section className="relative ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] w-screen">
+            <div className="h-[28vh] min-h-[220px] max-h-[420px] bg-gray-100 animate-pulse" />
+          </section>
+        ) : category?.banner ? (
+          <section className="relative ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] w-screen">
+            <div className="relative h-[28vh] min-h-[220px] max-h-[420px] sm:h-[36vh] md:h-[44vh] overflow-hidden">
+              {/* Lớp nền blur: fill toàn khung, object-cover để trông hiện đại */}
+              <img
+                src={category.banner}
+                alt=""
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60"
+                referrerPolicy="no-referrer"
+                decoding="async"
+              />
+              {/* Ảnh chính: object-contain để KHÔNG MẤT ẢNH */}
+              <img
+                src={category.banner}
+                alt={categoryDisplayName}
+                referrerPolicy="no-referrer"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                className="relative z-10 mx-auto h-full max-w-[95%] object-contain"
+                style={{ objectPosition: "center" }}
+              />
+
+              {/* Chip số lượng sản phẩm (glassmorphism, nhẹ) */}
+              {!isLoading && (
+                <div className="absolute bottom-4 right-4 z-20">
+                  <span className="inline-block rounded-full bg-white/70 backdrop-blur-md px-3 py-1 text-sm font-medium text-gray-800 shadow">
+                    {list.length} sản phẩm
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
+          // Fallback khi không có banner: dùng container như cũ
+          <div className="max-w-6xl mx-auto px-3">
+            <div className="rounded-2xl border bg-white p-5 shadow-sm">
+              <div className="text-xs text-gray-500">Danh mục</div>
+              <h1 className="text-2xl md:text-3xl font-bold capitalize">
+                {categoryDisplayName}
+              </h1>
+              {!isLoading && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {list.length} sản phẩm
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+      {/* Content */}
+      <div className="max-w-6xl mx-auto px-3">
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-80 rounded-xl bg-gray-100 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : isError ? (
+          <div className="rounded-xl bg-white p-6 shadow-sm text-red-600">
+            ❌ Không tải được sản phẩm. Vui lòng thử lại.
+          </div>
+        ) : view.length === 0 ? (
+          <div className="rounded-xl bg-white p-8 shadow-sm text-center text-gray-600">
+            📦 Chưa có sản phẩm trong danh mục này.
+          </div>
+        ) : (
+          <>
+            {/* Product Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {view.map((p) => (
+                <ProductCard key={p.slug || p.id} p={p} />
+              ))}
+            </div>
 
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {/* Giá */}
-        <button
-          onClick={() => setOpenPrice(true)}
-          className={`rounded-lg border px-3 py-2 text-sm ${
-            picked("price") || price.min !== minP || price.max !== maxP
-              ? "border-emerald-500"
-              : "hover:bg-gray-50"
-          }`}
-        >
-          Giá
-        </button>
-
-        {/* Các facet động */}
-        {Object.values(facets)
-          .filter(Boolean)
-          .filter((f) => f.key !== "price")
-          .map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setOpenFacet(f)}
-              className={`rounded-lg border px-3 py-2 text-sm ${
-                picked(f.key) ? "border-emerald-500" : "hover:bg-gray-50"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+            {/* Load More */}
+            {canLoadMore && (
+              <div className="mt-6 text-center">
+                <Button
+                  variant="secondary"
+                  onClick={onLoadMore}
+                  disabled={isFetching} // 1. Vô hiệu hóa nút khi đang tải
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-6 py-2.5 font-medium hover:bg-gray-50 transition disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer" // 2. Thêm class để căn giữa spinner
+                >
+                  {/* 3. Dùng isFetching để chọn hiển thị */}
+                  {isFetching ? (
+                    <>
+                      {/* Đây là SVG spinner */}
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Đang tải...
+                    </>
+                  ) : (
+                    "Xem thêm sản phẩm"
+                  )}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
-
-      {/* Grid 5 cột */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        {showing.map((p) => (
-          <ProductCard key={p.id} p={p} />
-        ))}
+      {/* Categories Section */}
+      <div className="max-w-6xl mx-auto px-3 mt-8">
+        <CategoriesSection />
       </div>
-
-      {/* Xem thêm */}
-      <div className="mt-6 text-center">
-        {canMore ? (
-          <button
-            onClick={() => setVisible((v) => v + 15)}
-            className="rounded-lg border px-5 py-2 hover:bg-gray-50"
-          >
-            Xem thêm sản phẩm
-          </button>
-        ) : filtered.length === 0 ? (
-          <div className="text-gray-500">Không tìm thấy sản phẩm phù hợp.</div>
-        ) : null}
-      </div>
-
-      {/* Modals */}
-      <PriceModal
-        open={openPrice}
-        onClose={() => setOpenPrice(false)}
-        priceRange={{ min: price.min, max: price.max }}
-        onApply={(v) => setPrice(v)}
-      />
-      {openFacet && (
-        <OptionsModal
-          open={!!openFacet}
-          onClose={() => setOpenFacet(null)}
-          title={openFacet.label}
-          facetKey={openFacet.key}
-          options={openFacet.options}
-          selected={filters[openFacet.key] || []}
-          onApply={applyFacet}
-        />
-      )}
     </div>
   );
 }

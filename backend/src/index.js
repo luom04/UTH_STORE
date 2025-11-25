@@ -11,7 +11,12 @@ const bootstrap = async () => {
 
   const app = createApp();
   const server = http.createServer(app);
-  attachSocket(server, config.clientUrl);
+
+  // ✅ Thay đổi nhỏ: Gán io vào biến để setup global
+  const io = attachSocket(server, config.clientUrl);
+
+  // ✅ Thêm dòng này: Giúp bạn gọi socket ở bất kỳ đâu trong Controller (qua req.app.get('io'))
+  app.set("io", io);
 
   server.listen(config.port, () => {
     console.log(`🚀 Server listening on http://localhost:${config.port}`);

@@ -10,7 +10,7 @@ import {
   useUpsertProduct,
   useDeleteProduct,
   useUpdateStock,
-} from "../hooks/useProducts";
+} from "../../../hooks/useProducts.js";
 import {
   useCategories,
   useCreateCategory,
@@ -61,6 +61,9 @@ export default function ProductsPage() {
     q,
     stock: stockFilter,
     category: categoryFilter,
+    fields:
+      // ✅ FIX 1: thêm giftProducts để edit không bị mất
+      "title,slug,category,brand,price,priceSale,discountPercent,stock,images,thumbnails,description,isFeatured,specs,status,updatedAt,gifts,giftProducts,promotionText,studentDiscountAmount",
   });
 
   // ✅ Mutations
@@ -80,16 +83,23 @@ export default function ProductsPage() {
       category: p.category,
       brand: p.brand,
       price: p.price,
+      priceSale: p.priceSale ?? p.price ?? 0,
+      discountPercent: p.discountPercent ?? 0,
       stock: p.stock,
       images: Array.isArray(p.images) ? p.images : [],
       image:
         Array.isArray(p.images) && p.images.length ? p.images[0] : undefined,
+      thumbnails: Array.isArray(p.thumbnails) ? p.thumbnails : [],
       status: p.status,
       active: p.status === "active",
       isFeatured: !!p.isFeatured,
       description: p.description || "",
       updatedAt: p.updatedAt,
       specs: p.specs,
+      gifts: p.gifts || [],
+      giftProducts: p.giftProducts || [],
+      promotionText: p.promotionText || "",
+      studentDiscountAmount: p.studentDiscountAmount,
     }));
   }, [data]);
 
@@ -237,7 +247,6 @@ export default function ProductsPage() {
                   className="flex-1 cursor-pointer"
                   onClick={() => handleCategoryChange(cat.slug)}
                   onContextMenu={(e) => {
-                    // ✅ Right-click to edit - CHỈ ADMIN
                     if (isAdmin) {
                       e.preventDefault();
                       setEditingCategory(cat);
@@ -314,27 +323,24 @@ export default function ProductsPage() {
         isError={isError}
         list={list}
         meta={meta}
-        // ✅ Edit - CHỈ ADMIN
         onEdit={
           isAdmin
             ? (p) => {
                 setEditingProduct(p);
                 setOpenProductModal(true);
               }
-            : undefined // Staff không có edit
+            : undefined
         }
-        // ✅ Delete - CHỈ ADMIN
         onDelete={
           isAdmin
             ? (id) => {
                 if (confirm("Xoá sản phẩm này?")) deleteProductMut.mutate(id);
               }
-            : undefined // Staff không có delete
+            : undefined
         }
-        // ✅ Stock +/- - CẢ ADMIN & STAFF
         onInc={(id) => stockMut.mutate({ id, diff: +1 })}
         onDec={(id) => stockMut.mutate({ id, diff: -1 })}
-        canDelete={isAdmin} // Chỉ Admin mới thấy nút delete
+        canDelete={isAdmin}
       />
 
       {/* Phân trang */}

@@ -1,4 +1,3 @@
-//src/controllers/auth.controller.js
 import httpStatus from "http-status";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { AuthService } from "../services/auth.service.js";
@@ -10,7 +9,6 @@ const setAuthCookies = (res, { accessToken, refreshToken }, cookieCfg) => {
     httpOnly: true,
     secure: cookieCfg.secure,
     sameSite: cookieCfg.sameSite,
-    // domain: cookieCfg.domain,
     maxAge: 15 * 60 * 1000,
     path: "/",
   });
@@ -18,7 +16,6 @@ const setAuthCookies = (res, { accessToken, refreshToken }, cookieCfg) => {
     httpOnly: true,
     secure: cookieCfg.secure,
     sameSite: cookieCfg.sameSite,
-    // domain: cookieCfg.domain,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: "/",
   });
@@ -30,43 +27,24 @@ export const register = asyncHandler(async (req, res) => {
   return created(res, { id: user._id, email: user.email, name: user.name });
 });
 
-// backend/src/controllers/auth.controller.js
-
 export const verifyEmail = catchAsync(async (req, res) => {
-  console.log("=== CONTROLLER ===");
-  console.log("req.body:", req.body);
-  console.log("req.body type:", typeof req.body);
-  console.log("==================");
-
   const { token } = req.body;
-
-  console.log("=== EXTRACTED TOKEN ===");
-  console.log("token:", token);
-  console.log("token type:", typeof token);
-  console.log("=======================");
-
   const result = await AuthService.verifyEmail(token);
-
   res.status(httpStatus.OK).json({
     success: true,
     ...result,
   });
 });
 
-/**
- * POST /api/auth/resend-verification
- * Body: { email: "..." }
- */
 export const resendVerification = catchAsync(async (req, res) => {
   const { email } = req.body;
-
   const result = await AuthService.resendVerificationEmail(email);
-
   res.status(httpStatus.OK).json({
     success: true,
     ...result,
   });
 });
+
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const ip = req.ip;
@@ -94,7 +72,6 @@ export const requestPasswordReset = asyncHandler(async (req, res) => {
 export const resetPassword = asyncHandler(async (req, res) => {
   const { token, newPassword } = req.body;
   const r = await AuthService.resetPassword({ token, newPassword });
-  // clear cookies nếu đang đăng nhập ở browser hiện tại
   res.clearCookie("access_token");
   res.clearCookie("refresh_token");
   return ok(res, r);
@@ -108,20 +85,64 @@ export const logout = asyncHandler(async (req, res) => {
   return ok(res, { loggedOut: true });
 });
 
+// ✅ [SỬA LẠI] Hàm me: Gọi Service để lấy Rank + TotalSpent
 export const me = asyncHandler(async (req, res) => {
-  return ok(res, {
-    id: req.user._id,
-    email: req.user.email,
-    name: req.user.name,
-    role: String(req.user.role || "").toLowerCase(), // 👈
-    verified: req.user.isEmailVerified,
-    phone: req.user.phone,
-    gender: req.user.gender,
-    dob: req.user.dob,
-  });
+  // req.user._id có được từ middleware xác thực (JWT)
+  const data = await AuthService.getMe(req.user._id);
+
+  // data trả về sẽ có dạng: { ...userInfo, totalSpent, rank }
+  return ok(res, data);
 });
 
 export const updateMe = asyncHandler(async (req, res) => {
   const updated = await AuthService.updateMe(req.user._id, req.body);
   return ok(res, updated);
+});
+
+// [CUSTOMER] Gửi yêu cầu xác thực
+export const requestStudentVerify = asyncHandler(async (req, res) => {
+  const userId = req.user._id; // Lấy từ token
+
+  // ✅ gọi service đúng flow
+  const result = await AuthService.requestStudentVerify(userId, req.body);
+
+  res.status(200).json({
+    success: true,
+    message: "Gửi yêu cầu thành công! Vui lòng chờ Admin xét duyệt.",
+    data: result,
+  });
+});
+
+// [ADMIN] Duyệt yêu cầu
+export const verifyStudentRequest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, reason } = req.body;
+
+  // ✅ gọi service đúng flow
+  const result = await AuthService.verifyStudentRequest(id, {
+    status,
+    reason,
+  });
+
+  const msg =
+    status === "verified"
+      ? "Đã duyệt yêu cầu thành công"
+      : "Đã từ chối yêu cầu";
+
+  res.status(200).json({
+    success: true,
+    message: msg,
+    data: result,
+  });
+});
+
+// [ADMIN] Lấy danh sách chờ
+export const getPendingStudentRequests = asyncHandler(async (req, res) => {
+  // ✅ gọi service đúng flow
+  const list = await AuthService.getPendingStudentRequests();
+
+  res.status(200).json({
+    success: true,
+    data: list,
+  });
 });

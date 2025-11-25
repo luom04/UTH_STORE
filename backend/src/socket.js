@@ -1,95 +1,183 @@
+// src/socket.js
 import { Server } from "socket.io";
 import cookie from "cookie";
-import { verifyAccessToken } from "./utils/jwt.js";
-import { MessageService } from "./services/message.service.js";
-import { ConversationService } from "./services/conversation.service.js";
+import jwt from "jsonwebtoken";
+import { config } from "./config.js";
+import { ChatService } from "./services/chat.service.js";
+import { Chat } from "./models/chat.model.js";
 
-export const attachSocket = (server, corsOrigin) => {
-  const io = new Server(server, {
-    cors: { origin: corsOrigin, credentials: true },
+export const attachSocket = (httpServer, corsOrigin) => {
+  const io = new Server(httpServer, {
+    cors: {
+      origin: corsOrigin || "*",
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
   });
 
-  // middleware auth
-  io.use((socket, next) => {
+  // 🔒 MIDDLEWARE: Xác thực User qua cookie (nếu có)
+  io.use(async (socket, next) => {
     try {
-      const raw = socket.handshake.headers.cookie || "";
-      const parsed = cookie.parse(raw || "");
-      const token = parsed["access_token"];
-      if (!token) return next(new Error("Unauthorized"));
-      const payload = verifyAccessToken(token); // { sub, role, iat, exp }
-      socket.user = { id: payload.sub, role: payload.role };
-      next();
-    } catch (e) {
-      next(new Error("Unauthorized"));
+      const cookieHeader = socket.request.headers.cookie;
+
+      if (cookieHeader) {
+        const cookies = cookie.parse(cookieHeader);
+        const accessToken = cookies.access_token;
+
+        if (accessToken) {
+          const decoded = jwt.verify(accessToken, config.jwt.accessSecret);
+          socket.user = { _id: decoded.sub, role: decoded.role };
+        }
+      }
+    } catch (err) {
+      // Token lỗi hoặc không có cookie, bỏ qua
     }
+    next();
   });
 
   io.on("connection", (socket) => {
-    const userId = socket.user.id;
-    // client gọi join phòng hội thoại
-    socket.on("conversation:join", async (convId) => {
-      try {
-        await ConversationService.getByIdForUser(convId, userId); // check quyền
-        socket.join(`conv:${convId}`);
-        socket.emit("conversation:joined", convId);
-      } catch (e) {
-        socket.emit("error", e.message);
-      }
+    // ==================================================
+    // 🟢 CUSTOMER EVENTS
+    // ==================================================
+
+    // Khách join vào room theo sessionId
+    socket.on("join_chat", (sessionId) => {
+      if (!sessionId) return;
+      socket.join(sessionId);
     });
 
-    // gửi text
-    socket.on("message:send", async ({ conversationId, text }) => {
+    // Khách gửi tin nhắn
+    socket.on("client_send_message", async (data) => {
       try {
-        const msg = await MessageService.sendText(conversationId, userId, text);
-        io.to(`conv:${conversationId}`).emit("message:new", msg);
-      } catch (e) {
-        socket.emit("error", e.message);
-      }
-    });
+        const userId = socket.user ? socket.user._id : null;
+        const { sessionId, content } = data || {};
 
-    // báo typing
-    socket.on("typing", ({ conversationId, isTyping }) => {
-      socket
-        .to(`conv:${conversationId}`)
-        .emit("typing", { userId, isTyping: !!isTyping });
-    });
+        if (!sessionId || !content) {
+          return;
+        }
 
-    // edit
-    socket.on("message:edit", async ({ messageId, text }) => {
-      try {
-        const msg = await MessageService.editMessage(messageId, userId, text);
-        io.to(`conv:${msg.conversation}`).emit("message:updated", msg);
-      } catch (e) {
-        socket.emit("error", e.message);
-      }
-    });
-
-    // delete
-    socket.on("message:delete", async ({ messageId }) => {
-      try {
-        // lấy conversation để broadcast
-        // nhỏ gọn: fetch message sau khi xóa không còn conv => tùy chọn cải thiện
-        const result = await MessageService.deleteMessage(
-          messageId,
+        const { chat, response } = await ChatService.handleUserMessage({
+          ...data,
           userId,
-          socket.user.role === "admin"
-        );
-        io.emit("message:deleted", { messageId, result }); // hoặc gửi vào room tương ứng nếu có convId đi kèm
-      } catch (e) {
-        socket.emit("error", e.message);
+        });
+
+        // Nếu AI trả lời được
+        if (response) {
+          io.to(sessionId).emit("server_send_message", {
+            sender: "ai",
+            content: response,
+            timestamp: new Date(),
+          });
+        }
+
+        // Update cho tất cả admin đang mở dashboard
+        io.to("admin_room").emit("admin_receive_message", {
+          sessionId,
+          chatData: chat,
+        });
+      } catch (err) {
+        socket.emit("error", "Lỗi xử lý tin nhắn từ khách");
       }
     });
 
-    // read
-    socket.on("message:read", async ({ conversationId }) => {
-      try {
-        await MessageService.markRead(conversationId, userId);
-        socket
-          .to(`conv:${conversationId}`)
-          .emit("message:read", { conversationId, userId });
-      } catch (e) {
-        socket.emit("error", e.message);
+    // ==================================================
+    // 🔴 ADMIN EVENTS
+    // ==================================================
+
+    // Admin mở dashboard chat
+    socket.on("admin_join_dashboard", () => {
+      if (
+        socket.user &&
+        (socket.user.role === "admin" || socket.user.role === "staff")
+      ) {
+        socket.join("admin_room");
       }
+    });
+
+    // Admin gửi tin nhắn cho một session
+    socket.on("admin_send_message", async (data) => {
+      try {
+        if (
+          !socket.user ||
+          (socket.user.role !== "admin" && socket.user.role !== "staff")
+        ) {
+          return;
+        }
+
+        const { sessionId, content } = data || {};
+        if (!sessionId || !content) {
+          return;
+        }
+
+        const updatedChat = await ChatService.handleAdminMessage({
+          sessionId,
+          content,
+        });
+
+        // Gửi tin nhắn admin cho khách
+        io.to(sessionId).emit("server_send_message", {
+          sender: "admin",
+          content,
+          timestamp: new Date(),
+        });
+
+        // Confirm cho admin
+        socket.emit("admin_sent_success", {
+          sessionId,
+          content,
+        });
+
+        // Đồng bộ lại full chat cho toàn bộ admin trong admin_room
+        io.to("admin_room").emit("admin_receive_message", {
+          sessionId,
+          chatData: updatedChat,
+        });
+      } catch (err) {
+        socket.emit("error", "Lỗi gửi tin nhắn admin");
+      }
+    });
+
+    // ==================================================
+    // 🎚 ADMIN SET AI MODE (BẬT/TẮT AI CHO 1 CUỘC CHAT)
+    // ==================================================
+    socket.on("admin_set_ai_mode", async ({ sessionId, needsHuman }) => {
+      try {
+        if (
+          !socket.user ||
+          (socket.user.role !== "admin" && socket.user.role !== "staff")
+        ) {
+          return;
+        }
+
+        if (!sessionId) return;
+
+        // needsHuman = true  => AI TẮT, người thật xử lý
+        // needsHuman = false => AI BẬT, trả lời tự động
+        const updatedChat = await Chat.findOneAndUpdate(
+          { sessionId },
+          { needsHuman: !!needsHuman, lastActivity: new Date() },
+          { new: true }
+        )
+          .populate("user", "name email")
+          .lean();
+
+        if (!updatedChat) return;
+
+        // Gửi thông tin mode mới cho mọi admin
+        io.to("admin_room").emit("admin_ai_mode_updated", {
+          sessionId,
+          needsHuman: updatedChat.needsHuman,
+        });
+      } catch (err) {
+        // Xử lý lỗi ngầm
+      }
+    });
+
+    // ==================================================
+    // 🔌 DISCONNECT
+    // ==================================================
+    socket.on("disconnect", () => {
+      // Disconnected
     });
   });
 

@@ -16,6 +16,16 @@ const AddressSchema = new mongoose.Schema(
   { _id: true, timestamps: false }
 );
 
+// ✅ [CRM] Schema cho Ghi chú nội bộ
+const NoteSchema = new mongoose.Schema(
+  {
+    content: { type: String, required: true },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Người viết note (Admin/Staff)
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true } // Tự tạo ID cho mỗi note để dễ xóa/sửa sau này
+);
+
 const UserSchema = new mongoose.Schema(
   {
     email: {
@@ -35,6 +45,12 @@ const UserSchema = new mongoose.Schema(
       index: true,
     },
     isEmailVerified: { type: Boolean, default: false },
+
+    // 🆕 THÊM FIELD MỚI: Khóa/mở tài khoản
+    isActive: {
+      type: Boolean,
+      default: true, // Mặc định active
+    },
     phone: { type: String, trim: true, default: "" },
     gender: {
       type: String,
@@ -47,7 +63,7 @@ const UserSchema = new mongoose.Schema(
       y: { type: String, default: "" },
     },
     addresses: [AddressSchema],
-
+    notes: [NoteSchema],
     // ✅ THÊM 3 DÒNG NÀY:
     verificationToken: {
       type: String,
@@ -57,18 +73,24 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
-
-    // // ✅ ĐỔI default về FALSE cho customer:
-    // isEmailVerified: {
-    //   type: Boolean,
-    //   default: false, // ← Customer phải verify email
-    // },
-
     // ✅ NEW: Lương (chỉ cho staff/admin)
     salary: {
       type: Number,
       default: 0,
       min: 0,
+    },
+    isStudent: { type: Boolean, default: false },
+    // ✅ 2. Thông tin xét duyệt
+    studentInfo: {
+      studentIdImage: { type: String, default: "" }, // Link ảnh thẻ SV
+      schoolName: { type: String, default: "" }, // Tên trường
+      status: {
+        type: String,
+        enum: ["none", "pending", "verified", "rejected"],
+        default: "none",
+      },
+      rejectedReason: { type: String, default: "" }, // Lý do từ chối
+      submittedAt: { type: Date }, // Ngày gửi yêu cầu
     },
   },
   { timestamps: true }

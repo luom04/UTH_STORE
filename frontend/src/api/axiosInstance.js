@@ -1,6 +1,6 @@
 // src/api/axiosInstance.js - FINAL FIX
 import axios from "axios";
-
+import { PATHS } from "../routes/paths";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5001/api";
 
 const axiosInstance = axios.create({
@@ -103,8 +103,8 @@ axiosInstance.interceptors.response.use(
         localStorage.clear();
 
         // Redirect to login (chỉ 1 lần)
-        if (!window.location.pathname.includes("/login")) {
-          window.location.href = "/login";
+        if (!window.location.pathname.includes(`${PATHS.HOME}`)) {
+          window.location.href = `${PATHS.LOGIN}`;
         }
 
         return Promise.reject(
@@ -116,14 +116,24 @@ axiosInstance.interceptors.response.use(
     // ✅ Xử lý lỗi khác
     if (error.response) {
       const message = error.response.data?.message || "Có lỗi xảy ra từ server";
-      return Promise.reject(new Error(message));
+
+      // Tạo Error object nhưng vẫn giữ lại status code để component sử dụng nếu cần
+      const customError = new Error(message);
+      customError.status = error.response.status;
+      customError.code = error.response.data?.code; // Nếu BE có trả về error code
+
+      return Promise.reject(customError);
     }
 
     if (error.request) {
-      return Promise.reject(new Error("Không thể kết nối đến server"));
+      return Promise.reject(
+        new Error("Không thể kết nối đến server. Vui lòng kiểm tra mạng.")
+      );
     }
 
-    return Promise.reject(new Error(error.message || "Có lỗi xảy ra"));
+    return Promise.reject(
+      new Error(error.message || "Có lỗi không xác định xảy ra")
+    );
   }
 );
 

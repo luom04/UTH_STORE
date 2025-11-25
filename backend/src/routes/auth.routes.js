@@ -2,6 +2,7 @@
 import { Router } from "express";
 import passport from "passport";
 import { AuthService } from "../services/auth.service.js";
+import { requireRoles } from "../middlewares/auth.middleware.js";
 // Import dạng named từ controller
 import {
   register,
@@ -14,6 +15,9 @@ import {
   resetPassword,
   updateMe,
   resendVerification,
+  requestStudentVerify,
+  verifyStudentRequest,
+  getPendingStudentRequests,
 } from "../controllers/auth.controller.js";
 
 const router = Router();
@@ -55,6 +59,28 @@ router.get(
     // chuyển user về FE
     return res.redirect(`${process.env.CLIENT_URL}/oauth-success`);
   }
+);
+
+router.post(
+  "/student-request",
+  passport.authenticate("jwt", { session: false }),
+  requireRoles("customer"),
+  requestStudentVerify
+);
+
+// ✅ ADMIN: thêm passport để đảm bảo có req.user trước requireRoles
+router.get(
+  "/admin/student-requests",
+  passport.authenticate("jwt", { session: false }), // ✅ thêm dòng này
+  requireRoles("admin", "staff"),
+  getPendingStudentRequests
+);
+
+router.put(
+  "/admin/verify-student/:id",
+  passport.authenticate("jwt", { session: false }), // ✅ thêm dòng này
+  requireRoles("admin"),
+  verifyStudentRequest
 );
 
 // Auth routes (KHÔNG có prefix /api/v1 ở đây; prefix gắn ở app.use('/api/v1', routes))

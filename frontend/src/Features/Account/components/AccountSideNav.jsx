@@ -6,7 +6,7 @@ import { useCurrentUser } from "../../../hooks/useAuth"; // ⬅️ dùng hook c�
 const items = [
   { to: PATHS.PROFILE, icon: User, label: "Thông tin tài khoản" },
   { to: PATHS.ADDRESSES, icon: MapPin, label: "Sổ địa chỉ" },
-  { to: PATHS.ACCOUNT_ORDERS, icon: Package, label: "Quản lý đơn hàng" },
+  { to: PATHS.ACCOUNT_ORDERS, icon: Package, label: "Đơn hàng của tôi" },
   { to: PATHS.LOGOUT, icon: LogOut, label: "Đăng xuất" },
 ];
 
@@ -55,14 +55,14 @@ export default function AccountSidebar() {
         </div>
       </div>
 
-      <nav className="p-2">
+      <nav className="p-2 ">
         {items.map(({ to, icon: Icon, label, disabled }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
               [
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm",
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm ",
                 disabled
                   ? "pointer-events-none opacity-50"
                   : "hover:bg-gray-50",

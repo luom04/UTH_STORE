@@ -36,8 +36,10 @@ export default function App() {
       {/* toast + devtools để trong QueryClientProvider cho tiện */}
       <Toaster
         position="top-center"
+        containerStyle={{ zIndex: 999 }}
         toastOptions={{
-          duration: 3000,
+          duration: 2000,
+
           style: { background: "#363636", color: "#fff" },
           success: { iconTheme: { primary: "#10b981", secondary: "#fff" } },
           error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },

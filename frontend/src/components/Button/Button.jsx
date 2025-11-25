@@ -1,3 +1,4 @@
+//src/components/Button/Button.jsx
 import React from "react";
 
 /**
@@ -33,9 +34,12 @@ export default function Button({
     primary:
       "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 cursor-pointer",
     secondary:
-      "bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 focus:ring-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700 cursor-pointer",
+      "bg-white text-red-600 border border-red-500 " +
+      "hover:bg-red-50 hover:border-red-600 hover:text-red-700 " +
+      "focus:ring-red-300 cursor-pointer",
     ghost:
       "bg-transparent text-gray-800 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800 cursor-pointer",
+    zalo: "bg-[#0A7CFF] text-white hover:bg-[#0564cc] focus:ring-blue-500 cursor-pointer",
   };
 
   // Định nghĩa style cho từng `size`

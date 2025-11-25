@@ -9,7 +9,7 @@ import {
   updateStaff,
   toggleActiveStaff,
   deleteStaff,
-} from "../api/staffs";
+} from "../api/staffApi";
 import toast from "react-hot-toast";
 
 /**

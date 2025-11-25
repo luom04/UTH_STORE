@@ -16,6 +16,22 @@ const ProductsPage = lazy(() =>
 const CustomersPage = lazy(() =>
   import("../Features/Admin/pages/CustomersPage.jsx")
 );
+const AdminReviewsPage = lazy(() =>
+  import("../Features/Admin/pages/ReviewsPage.jsx")
+);
+
+const ReportsPage = lazy(() =>
+  import("../Features/Admin/pages/ReportsPage.jsx")
+);
+const BannerManager = lazy(() =>
+  import("../Features/Admin/pages/BannerManager.jsx")
+);
+const CouponManager = lazy(() =>
+  import("../Features/Admin/pages/CouponManager.jsx")
+);
+const ChatsManager = lazy(() =>
+  import("../Features/Admin/pages/AdminChat.jsx")
+);
 
 //public
 const Home = lazy(() => import("../pages/Home/Home.jsx"));
@@ -84,7 +100,12 @@ export const ROUTES = [
     element: ProductDetail,
     layout: { type: "public" },
   },
-  { path: PATHS.CART, element: Cart, layout: { type: "public" } },
+  {
+    path: PATHS.CART,
+    element: Cart,
+    layout: { type: "public" },
+    meta: { auth: true, roles: ["customer", "staff", "admin"] },
+  },
   {
     path: PATHS.CHECKOUT_INFO,
     element: CheckoutInfo,
@@ -94,11 +115,13 @@ export const ROUTES = [
     path: PATHS.CHECKOUT_PAYMENT,
     element: CheckoutPayment,
     layout: { type: "public" },
+    meta: { auth: true, roles: ["customer", "staff", "admin"] }, // ✅
   },
   {
     path: PATHS.CHECKOUT_SUCCESS,
     element: CheckoutSuccess,
     layout: { type: "public" },
+    meta: { auth: true, roles: ["customer", "staff", "admin"] }, // ✅
   },
   { path: PATHS.CATALOG, element: Catalog, layout: { type: "public" } },
   { path: PATHS.SEARCH, element: Search, layout: { type: "public" } },
@@ -263,6 +286,36 @@ export const ROUTES = [
     element: CustomersPage,
     layout: { type: "admin" },
     meta: { auth: true, roles: ["staff", "admin"] }, // cả staff & admin được vào
+  },
+  {
+    path: ADMIN_PATHS.ADMIN_REVIEWS,
+    element: AdminReviewsPage,
+    layout: { type: "admin" },
+    meta: { auth: true, roles: ["staff", "admin"] },
+  },
+  {
+    path: ADMIN_PATHS.ADMIN_REPORTS,
+    element: ReportsPage,
+    layout: { type: "admin" },
+    meta: { auth: true, roles: ["staff", "admin"] },
+  },
+  {
+    path: ADMIN_PATHS.ADMIN_BANNERS,
+    element: BannerManager,
+    layout: { type: "admin" },
+    meta: { auth: true, roles: ["staff", "admin"] },
+  },
+  {
+    path: ADMIN_PATHS.ADMIN_COUPONS,
+    element: CouponManager,
+    layout: { type: "admin" },
+    meta: { auth: true, roles: ["staff", "admin"] },
+  },
+  {
+    path: ADMIN_PATHS.ADMIN_CHATS,
+    element: ChatsManager,
+    layout: { type: "admin" },
+    meta: { auth: true, roles: ["staff", "admin"] },
   },
 
   // ===== status =====

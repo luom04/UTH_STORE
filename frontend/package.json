@@ -21,8 +21,12 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
+    "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^7.9.4",
-    "tailwindcss": "^4.1.14"
+    "recharts": "^3.4.1",
+    "socket.io-client": "^4.8.1",
+    "tailwindcss": "^4.1.14",
+    "yet-another-react-lightbox": "^3.25.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

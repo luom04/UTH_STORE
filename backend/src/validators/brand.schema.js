@@ -9,6 +9,7 @@ export const createBrandSchema = z.object({
     name: z.string().min(2).max(120),
     slug: z.string().min(2).max(160).optional(),
     description: z.string().max(5000).optional(),
+    highlightText: z.string().max(2000).optional(),
     status: z.enum(["active", "hidden"]).optional(),
   }),
 });
@@ -20,6 +21,7 @@ export const updateBrandSchema = z.object({
       name: z.string().min(2).max(120).optional(),
       slug: z.string().min(2).max(160).optional(),
       description: z.string().max(5000).optional(),
+      highlightText: z.string().max(2000).optional(),
       status: z.enum(["active", "hidden"]).optional(),
     })
     .refine((d) => Object.keys(d).length > 0, { message: "Nothing to update" }),

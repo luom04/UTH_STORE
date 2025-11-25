@@ -1,17 +1,19 @@
-// PrivacyPolicyPage.jsx
+// PrivacyPolicyPage.jsx (Design màu trắng, shadow nhẹ)
 
 import React from "react";
 import PolicySectionCard from "../../components/PolicySectionCard"; // Nhớ import component con
 
 const PrivacyPolicy = () => {
   return (
-    <main className="min-h-screen bg-slate-100 dark:bg-slate-900 font-sans ">
+    // Thay đổi: Nền trắng hoặc xám nhạt tinh tế
+    <main className="min-h-screen bg-gray-50 font-sans antialiased">
       {/* --- Header --- */}
-      <header className="bg-white dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+      <header className="bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-5xl mx-auto py-16 px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+          {/* Icon: Vẫn dùng màu nhấn nhưng nhẹ nhàng hơn, nền trắng */}
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-4 ring-4 ring-blue-100">
             <svg
-              className="w-8 h-8 text-blue-600 dark:text-blue-300"
+              className="w-8 h-8 text-blue-600"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -25,18 +27,25 @@ const PrivacyPolicy = () => {
               />
             </svg>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-slate-50">
+          {/* Tiêu đề: Màu chữ đậm, dễ đọc trên nền trắng */}
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight">
             Chính Sách Bảo Mật
           </h1>
-          <p className="mt-3 max-w-2xl mx-auto text-lg text-slate-600 dark:text-slate-400">
+          {/* Mô tả: Màu xám trung tính, font medium */}
+          <p className="mt-4 max-w-2xl mx-auto text-lg font-medium text-gray-600">
             Cam kết của chúng tôi về việc bảo vệ dữ liệu và quyền riêng tư của
             bạn.
+          </p>
+          <p className="mt-2 text-sm text-gray-400">
+            Cập nhật lần cuối: 14/11/2025
           </p>
         </div>
       </header>
 
       {/* --- Nội dung chính sách --- */}
-      <div className="max-w-3xl mx-auto py-12 sm:py-16 px-4 sm:px-6 space-y-8">
+      {/* Giảm max-w để nội dung dễ đọc hơn trên nền trắng, tăng khoảng cách giữa các card */}
+      <div className="max-w-2xl mx-auto py-12 sm:py-20 px-4 sm:px-6 space-y-8">
+        {/* Nội dung được giữ nguyên */}
         <PolicySectionCard title="1. Mục đích và phạm vi thu thập thông tin">
           <p>
             Chúng tôi không bán, trao đổi hay chia sẻ dữ liệu cá nhân cho bên
@@ -50,12 +59,14 @@ const PrivacyPolicy = () => {
         </PolicySectionCard>
 
         <PolicySectionCard title="2. Phạm vi sử dụng thông tin">
-          <ul>
-            <li>Xác minh tài khoản, xử lý đơn hàng và bảo hành.</li>
-            <li>Liên hệ thông báo trạng thái đơn, hóa đơn chứng từ.</li>
-            <li>Cải thiện dịch vụ và cá nhân hóa trải nghiệm.</li>
-            <li>Gửi thông tin khuyến mãi khi được bạn đồng ý.</li>
-          </ul>
+          <div className="pl-6">
+            <ul className="list-disc space-y-2">
+              <li>Xác minh tài khoản, xử lý đơn hàng và bảo hành.</li>
+              <li>Liên hệ thông báo trạng thái đơn, hóa đơn chứng từ.</li>
+              <li>Cải thiện dịch vụ và cá nhân hóa trải nghiệm.</li>
+              <li>Gửi thông tin khuyến mãi khi được bạn đồng ý.</li>
+            </ul>
+          </div>
         </PolicySectionCard>
 
         <PolicySectionCard title="3. Thời gian lưu trữ thông tin">
@@ -74,7 +85,80 @@ const PrivacyPolicy = () => {
           </p>
         </PolicySectionCard>
 
-        {/* ... Bạn có thể tiếp tục thêm các PolicySectionCard khác cho các mục còn lại ... */}
+        <PolicySectionCard title="5. Cam kết bảo mật thông tin cá nhân">
+          <p>
+            Chúng tôi cam kết bảo vệ thông tin cá nhân của bạn bằng các biện
+            pháp bảo mật vật lý, điện tử và quản lý phù hợp. Dữ liệu được mã hóa
+            và truy cập hạn chế.
+          </p>
+          <p>
+            Mặc dù vậy, không có hệ thống nào là hoàn toàn bất khả xâm phạm.
+            Chúng tôi khuyến nghị bạn cũng cần tự bảo vệ thông tin cá nhân của
+            mình.
+          </p>
+        </PolicySectionCard>
+
+        <PolicySectionCard title="6. Quyền của khách hàng đối với thông tin cá nhân">
+          <div className="pl-6">
+            <ul className="list-disc space-y-2">
+              <li>
+                Bạn có quyền truy cập, chỉnh sửa hoặc yêu cầu xóa dữ liệu của
+                mình.
+              </li>
+              <li>
+                Bạn có quyền phản đối việc xử lý dữ liệu hoặc rút lại sự đồng ý.
+              </li>
+              <li>
+                Để thực hiện các quyền này, vui lòng liên hệ với chúng tôi qua
+                email hoặc số điện thoại.
+              </li>
+            </ul>
+          </div>
+        </PolicySectionCard>
+
+        <PolicySectionCard title="7. Cơ chế giải quyết khiếu nại">
+          <p>
+            Nếu bạn có bất kỳ khiếu nại hoặc thắc mắc nào về cách chúng tôi xử
+            lý thông tin cá nhân của bạn, vui lòng liên hệ với bộ phận hỗ trợ
+            khách hàng của chúng tôi. Chúng tôi sẽ cố gắng giải quyết vấn đề của
+            bạn một cách nhanh chóng và hiệu quả.
+          </p>
+        </PolicySectionCard>
+
+        <PolicySectionCard title="8. Thông tin liên hệ">
+          <p>
+            Nếu bạn có bất kỳ câu hỏi nào về chính sách bảo mật này, vui lòng
+            liên hệ:
+          </p>
+          <p className="mt-2">
+            Email:{" "}
+            <a
+              href="mailto:support@yourcompany.com"
+              className="text-blue-600 hover:underline"
+            >
+              support@yourcompany.com
+            </a>
+            <br />
+            Điện thoại:{" "}
+            <a
+              href="tel:+84123456789"
+              className="text-blue-600 hover:underline"
+            >
+              0123 456 789
+            </a>
+            <br />
+            Địa chỉ: Tòa nhà XYZ, Đường ABC, Quận 1, TP.HCM
+          </p>
+        </PolicySectionCard>
+
+        <PolicySectionCard title="9. Cookies và công nghệ theo dõi">
+          <p>
+            Chúng tôi có thể sử dụng cookies và các công nghệ theo dõi tương tự
+            để cải thiện trải nghiệm duyệt web của bạn, phân tích lưu lượng truy
+            cập và cá nhân hóa nội dung. Bạn có thể quản lý cài đặt cookie của
+            mình thông qua trình duyệt.
+          </p>
+        </PolicySectionCard>
 
         <PolicySectionCard title="10. Cập nhật chính sách">
           <p>

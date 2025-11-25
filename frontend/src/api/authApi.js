@@ -1,6 +1,5 @@
 // src/api/authApi.js
 import axiosInstance from "./axiosInstance";
-// src/api/authApi.js
 export const authApi = {
   register: async (userData) => {
     const { data } = await axiosInstance.post("/auth/register", {
@@ -11,6 +10,7 @@ export const authApi = {
     return data;
   },
 
+  // src/api/authApi.js
   // ✅ ADD THIS
   verifyEmail: async (token) => {
     const { data } = await axiosInstance.post("/auth/verify-email", {
@@ -18,7 +18,7 @@ export const authApi = {
     });
     return data;
   },
-  // ✅ THÊM HÀM MỚI NÀY VÀO
+
   resendVerification: async ({ email }) => {
     // API của bạn là /auth/resend-verification và cần { email }
     const { data } = await axiosInstance.post("/auth/resend-verification", {
@@ -66,6 +66,31 @@ export const authApi = {
 
   refresh: async () => {
     const { data } = await axiosInstance.post("/auth/refresh");
+    return data;
+  },
+
+  // [CUSTOMER] Gửi yêu cầu
+  requestStudentVerify: async (payload) => {
+    // payload: { studentIdImage, schoolName }
+    const { data } = await axiosInstance.post("/auth/student-request", payload);
+    return data;
+  },
+
+  // [ADMIN] Lấy danh sách chờ
+  getPendingRequests: async () => {
+    const { data } = await axiosInstance.get("/auth/admin/student-requests");
+    return data;
+  },
+
+  // [ADMIN] Duyệt / Từ chối
+  verifyRequest: async ({ userId, status, reason }) => {
+    const { data } = await axiosInstance.put(
+      `/auth/admin/verify-student/${userId}`,
+      {
+        status,
+        reason,
+      }
+    );
     return data;
   },
 };

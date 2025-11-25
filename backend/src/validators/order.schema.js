@@ -1,36 +1,43 @@
 import { z } from "zod";
 
+const shippingAddressSchema = z.object({
+  // [FIX] Zod fullname => Mongoose fullName
+  fullname: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+  phone: z.string().regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ"),
+  // [FIX] Zod address => Mongoose line1
+  address: z.string().min(5, "Địa chỉ phải có ít nhất 5 ký tự"),
+  province: z
+    .object({
+      code: z.string(),
+      name: z.string(),
+    })
+    .optional(),
+  district: z
+    .object({
+      code: z.string(),
+      name: z.string(),
+    })
+    .optional(),
+  ward: z
+    .object({
+      code: z.string(),
+      name: z.string(),
+    })
+    .optional(),
+});
+
 export const createOrderSchema = z.object({
   body: z.object({
-    // cho phép tạo từ cart (mặc định) hoặc từ items truyền vào
-    useCart: z.boolean().optional().default(true),
-    items: z
-      .array(
-        z.object({
-          productId: z.string().length(24),
-          qty: z.coerce.number().int().min(1),
-          options: z.record(z.any()).optional(),
-        })
-      )
-      .optional(),
-
-    shippingAddress: z.object({
-      fullName: z.string().min(2),
-      phone: z.string().min(8),
-      line1: z.string().min(3),
-      line2: z.string().optional(),
-      district: z.string().min(2),
-      city: z.string().min(2),
-      country: z.string().optional(),
-      postalCode: z.string().optional(),
-    }),
-    note: z.string().max(2000).optional(),
-    paymentMethod: z.enum(["cod", "online"]).default("cod"),
+    shippingAddress: shippingAddressSchema,
+    paymentMethod: z
+      .enum(["COD", "BANK_TRANSFER", "VNPAY", "MOMO"])
+      .default("COD"),
+    note: z.string().max(500).optional().default(""),
+    couponCode: z.string().trim().optional(),
   }),
 });
 
 export const updateOrderStatusSchema = z.object({
-  params: z.object({ id: z.string().length(24) }),
   body: z.object({
     status: z.enum([
       "pending",
@@ -39,7 +46,6 @@ export const updateOrderStatusSchema = z.object({
       "completed",
       "canceled",
     ]),
-    // admin có thể cập nhật paymentStatus khi cần
-    paymentStatus: z.enum(["unpaid", "paid", "refunded"]).optional(),
+    note: z.string().max(500).optional(),
   }),
 });

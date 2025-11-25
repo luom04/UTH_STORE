@@ -1,21 +1,20 @@
+// src/validators/cart.schema.js
 import { z } from "zod";
-
-export const idParam = z.object({
-  params: z.object({ id: z.string().length(24, "Invalid Mongo ObjectId") }),
-});
 
 export const addItemSchema = z.object({
   body: z.object({
-    productId: z.string().length(24),
-    qty: z.coerce.number().int().min(1).default(1),
+    productId: z.string().min(1, "Product ID is required"),
+    qty: z.number().int().min(1).optional().default(1),
     options: z.record(z.any()).optional(),
   }),
 });
 
 export const putItemSchema = z.object({
-  params: z.object({ itemId: z.string().length(24, "Invalid item id") }),
+  params: z.object({
+    itemId: z.string().min(1),
+  }),
   body: z.object({
-    qty: z.coerce.number().int().min(1),
+    qty: z.number().int().min(1).optional(),
     options: z.record(z.any()).optional(),
   }),
 });

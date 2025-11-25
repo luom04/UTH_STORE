@@ -1,27 +1,53 @@
 // src/Features/Admin/components/OrderStatusBadge.jsx
+import React from "react";
+
+const STATUS_STYLES = {
+  pending: {
+    label: "Chờ xác nhận",
+    className: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  },
+  confirmed: {
+    label: "Đã xác nhận",
+    className: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  shipping: {
+    label: "Đang giao hàng",
+    className: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  },
+  completed: {
+    label: "Hoàn thành",
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  },
+  canceled: {
+    label: "Đã hủy",
+    className: "bg-rose-50 text-rose-700 border-rose-200",
+  },
+  // Bổ sung thêm cho đủ bộ
+  unpaid: {
+    label: "Chưa thanh toán",
+    className: "bg-gray-100 text-gray-600 border-gray-200",
+  },
+  paid: {
+    label: "Đã thanh toán",
+    className: "bg-green-50 text-green-700 border-green-200",
+  },
+};
+
+const DEFAULT_STYLE = {
+  label: "Không rõ",
+  className: "bg-gray-50 text-gray-600 border-gray-200",
+};
+
 export default function OrderStatusBadge({ status }) {
-  const map = {
-    pending: "bg-amber-100 text-amber-800",
-    confirmed: "bg-blue-100 text-blue-800",
-    processing: "bg-indigo-100 text-indigo-800",
-    shipping: "bg-sky-100 text-sky-800",
-    delivered: "bg-emerald-100 text-emerald-800",
-    canceled: "bg-rose-100 text-rose-800",
-  };
-  const label =
-    {
-      pending: "Chờ xác nhận",
-      confirmed: "Đã xác nhận",
-      processing: "Đang xử lý",
-      shipping: "Đang giao",
-      delivered: "Đã giao",
-      canceled: "Đã hủy",
-    }[status] || status;
+  // Chuyển về chữ thường để tránh lỗi case-sensitive
+  const normalizedStatus = String(status || "").toLowerCase();
+
+  const style = STATUS_STYLES[normalizedStatus] || DEFAULT_STYLE;
+  const label = STATUS_STYLES[normalizedStatus] ? style.label : status;
+
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        map[status] || "bg-gray-100 text-gray-800"
-      }`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ${style.className}`}
     >
       {label}
     </span>

@@ -1,323 +1,33 @@
-// src/pages/Product/ProductDetail.jsx
-import { useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Star, MapPin, ShoppingCart } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  Star,
+  ShoppingCart,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  MessageCircle,
+  Gift, // ✅ [ADDED] Import icon Gift
+} from "lucide-react";
 import Button from "../../components/Button/Button.jsx";
-import {} from "react-router-dom";
-import { useCart } from "../../components/Cart/CartContext.jsx";
+import { useCart } from "../../hooks/useCart"; // Hook giỏ hàng
+import ProductGallery from "../../components/Product/ProductGallery.jsx";
+import SpecsTable from "../../components/Product/SpecsTable.jsx";
+import { useProduct, useBestSellers } from "../../hooks/useProductsPublic.js";
+import { PATHS } from "../../routes/paths.jsx";
+import ProductRow from "../../components/Product/ProductRow.jsx";
+import { useAuth } from "../../contexts/AuthContext.jsx";
+import toast from "react-hot-toast";
+import { useProductReviews } from "../../hooks/useReviews.js";
 
-const MOCK = [
-  {
-    id: "pc1",
-    title: "PC GVN i5-12400F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    specs: [
-      ["CPU", "Intel i5-12400F"],
-      ["Main", "B760"],
-      ["RAM", "16GB DDR4"],
-      ["SSD", "500GB NVMe"],
-      ["VGA", "RTX 3050"],
-      ["PSU", "550W 80+"],
-      ["Case", "Mid Tower"],
-    ],
-    description:
-      "Bộ PC cân mọi tựa game eSports ở 1080p, tối ưu hiệu năng/chi phí cho học sinh - sinh viên.",
-  },
-  {
-    id: "pc2",
-    title: "PC GVN i3-12100F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=1200&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    specs: [
-      ["CPU", "Intel i3-12100F"],
-      ["Main", "H610"],
-      ["RAM", "8GB DDR4"],
-      ["SSD", "250GB NVMe"],
-      ["VGA", "RTX 3050"],
-      ["PSU", "500W 80+"],
-      ["Case", "Mid Tower"],
-    ],
-    description:
-      "Bộ PC entry-level cho game thủ, phù hợp với các tựa game nhẹ và công việc văn phòng.",
-  },
-  {
-    id: "pc3",
-    title: "PC GVN x MSI PROJECT ZERO WHITE",
-    image:
-      "https://images.unsplash.com/photo-1593642634367-d91a135587b5?q=80&w=1200&auto=format&fit=crop",
-    price: 30990000,
-    oldPrice: 33020000,
-    specs: [
-      ["CPU", "Intel i5-14400F"],
-      ["Main", "B760"],
-      ["RAM", "16GB DDR5"],
-      ["SSD", "1TB NVMe Gen4"],
-      ["VGA", "RTX 4060"],
-      ["PSU", "750W 80+ Gold"],
-      ["Case", "MSI Project Zero White"],
-    ],
-    description:
-      "PC cao cấp thiết kế tối giản, dây nguồn ẩn gọn gàng, hiệu năng mạnh mẽ cho gaming và content creation.",
-  },
-  {
-    id: "pc4",
-    title: "PC GVN i3-12100F / RX 6500XT",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    price: 10490000,
-    oldPrice: 11430000,
-    specs: [
-      ["CPU", "Intel i3-12100F"],
-      ["Main", "H610"],
-      ["RAM", "8GB DDR4"],
-      ["SSD", "250GB NVMe"],
-      ["VGA", "AMD RX 6500XT"],
-      ["PSU", "500W 80+"],
-      ["Case", "Mid Tower"],
-    ],
-    description:
-      "Giải pháp tiết kiệm với card AMD, phù hợp cho game 1080p và streaming cơ bản.",
-  },
-  {
-    id: "pc5",
-    title: "PC GVN i5-12400F / RTX 3060",
-    image:
-      "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=1200&auto=format&fit=crop",
-    price: 16890000,
-    oldPrice: 18620000,
-    specs: [
-      ["CPU", "Intel i5-12400F"],
-      ["Main", "B760"],
-      ["RAM", "16GB DDR4"],
-      ["SSD", "500GB NVMe"],
-      ["VGA", "RTX 3060 12GB"],
-      ["PSU", "650W 80+ Bronze"],
-      ["Case", "Mid Tower RGB"],
-    ],
-    description:
-      "Cấu hình sweet spot cho gaming 1080p/1440p, đủ mạnh cho AAA games ở setting cao.",
-  },
-  {
-    id: "pc6",
-    title: "PC GVN i5-13400F / RTX 4060",
-    image:
-      "https://images.unsplash.com/photo-1614064641938-3bbee52958a5?q=80&w=1200&auto=format&fit=crop",
-    price: 21990000,
-    oldPrice: 23990000,
-    specs: [
-      ["CPU", "Intel i5-13400F"],
-      ["Main", "B760"],
-      ["RAM", "16GB DDR5"],
-      ["SSD", "500GB NVMe Gen4"],
-      ["VGA", "RTX 4060 8GB"],
-      ["PSU", "650W 80+ Gold"],
-      ["Case", "Mid Tower Mesh"],
-    ],
-    description:
-      "PC thế hệ mới với DDR5, hỗ trợ DLSS 3.0, hiệu năng vượt trội cho gaming và render.",
-  },
-  // Thêm các laptop
-  {
-    id: "lt0",
-    title: "Laptop i5-12400F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    specs: [
-      ["CPU", "Intel i5-12400F"],
-      ["RAM", "16GB DDR4"],
-      ["Storage", "500GB SSD"],
-      ["Display", "15.6 inch FHD"],
-      ["VGA", "RTX 3050"],
-    ],
-    description:
-      "Laptop gaming di động với hiệu năng ổn định cho công việc và giải trí.",
-  },
-  {
-    id: "lt1",
-    title: "Laptop i3-12100F / RTX 3050",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=1200&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    specs: [
-      ["CPU", "Intel i3-12100F"],
-      ["RAM", "8GB DDR4"],
-      ["Storage", "250GB SSD"],
-      ["Display", "15.6 inch FHD"],
-      ["VGA", "RTX 3050"],
-    ],
-    description: "Laptop phù hợp cho sinh viên với giá cả hợp lý.",
-  },
-  // Thêm chuột
-  {
-    id: "ms0",
-    title: "Chuột gaming 1",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    specs: [
-      ["Cảm biến", "PAW3395"],
-      ["DPI", "Up to 26000"],
-      ["Kết nối", "Wireless 2.4GHz"],
-      ["RGB", "16.8 triệu màu"],
-      ["Pin", "70 giờ sử dụng"],
-    ],
-    description: "Chuột gaming cao cấp với cảm biến chính xác và pin lâu.",
-  },
-  {
-    id: "ms1",
-    title: "Chuột gaming 2",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=1200&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    specs: [
-      ["Cảm biến", "PAW3370"],
-      ["DPI", "Up to 20000"],
-      ["Kết nối", "Wireless + USB-C"],
-      ["RGB", "RGB Zone"],
-      ["Trọng lượng", "65g siêu nhẹ"],
-    ],
-    description: "Chuột nhẹ phù hợp cho FPS gamers chuyên nghiệp.",
-  },
-  // Thêm bàn phím
-  {
-    id: "kb0",
-    title: "Bàn phím gaming 1",
-    image:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop",
-    price: 13990000,
-    oldPrice: 15420000,
-    specs: [
-      ["Layout", "75% Hot-swap"],
-      ["Switch", "Cherry MX Red"],
-      ["Keycap", "PBT Double-shot"],
-      ["Kết nối", "USB-C + Bluetooth"],
-      ["RGB", "Per-key RGB"],
-    ],
-    description: "Bàn phím cơ cao cấp với khả năng tùy chỉnh switch linh hoạt.",
-  },
-  {
-    id: "kb1",
-    title: "Bàn phím gaming 2",
-    image:
-      "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=1200&auto=format&fit=crop",
-    price: 11890000,
-    oldPrice: 13530000,
-    specs: [
-      ["Layout", "TKL (80%)"],
-      ["Switch", "Gateron Yellow"],
-      ["Keycap", "ABS"],
-      ["Kết nối", "USB-C"],
-      ["Tính năng", "N-key rollover"],
-    ],
-    description:
-      "Bàn phím cơ TKL gọn gàng cho bàn làm việc hạn chế không gian.",
-  },
-];
+const ZALO_CONTACT_URL = (import.meta.env.VITE_ZALO_CONTACT_URL || "").trim();
 
-// ==================================================================
-// THÊM MỚI: DỮ LIỆU MOCK CHO PHẦN ĐÁNH GIÁ
-// ==================================================================
-const REVIEWS_MOCK = [
-  {
-    id: 1,
-    author: "Nguyễn Văn An",
-    avatar: "https://ui-avatars.com/api/?name=An+Nguyen&background=random",
-    date: "12/10/2025",
-    rating: 5,
-    content:
-      "Sản phẩm tuyệt vời, đúng như mô tả. Máy chạy mượt, chiến game không giật lag. Shop tư vấn nhiệt tình, giao hàng nhanh chóng. Rất hài lòng!",
-  },
-  {
-    id: 2,
-    author: "Trần Thị Bích",
-    avatar: "https://ui-avatars.com/api/?name=Bich+Tran&background=random",
-    date: "10/10/2025",
-    rating: 4,
-    content:
-      "Máy mạnh, thiết kế case đẹp. Chỉ có điều quạt tản nhiệt hơi ồn một chút khi full tải, nhưng với tầm giá này thì quá ổn rồi. Sẽ ủng hộ shop lần sau.",
-  },
-  {
-    id: 3,
-    author: "Lê Minh Cường",
-    avatar: "https://ui-avatars.com/api/?name=Cuong+Le&background=random",
-    date: "05/10/2025",
-    rating: 5,
-    content:
-      "Đóng gói cẩn thận, không một vết xước. Cấu hình mạnh mẽ, render video nhanh hơn hẳn máy cũ của mình. 10/10 điểm.",
-  },
-];
+/* ======================= COMMON: STAR RATING ======================= */
 
-// ==================================================================
-// THÊM MỚI: DỮ LIỆU VÀ COMPONENT CHO SHOWROOM
-// ==================================================================
-const SHOWROOMS_MOCK = {
-  HCM: [
-    { address: "78-80-82 Hoàng Hoa Thám, Phường Bảy Hiến, TP.HCM" },
-    { address: "905 Kha Vạn Cân, Phường Linh Tây, TP.HCM" },
-    { address: "1081-1083 Trần Hưng Đạo, Phường An Đồng, TP.HCM" },
-    { address: "63 Nguyễn Cửu Vân, Phường Gia Định, TP.HCM", isNew: true },
-  ],
-  HN: [{ address: "162-164 Thái Hà, Phường Đống Đa, Hà Nội" }],
-};
-
-function ShowroomLocations({ locations }) {
-  return (
-    <div className="mt-5 border-t pt-4 text-sm">
-      <div className="mb-3">
-        <h3 className="font-semibold underline underline-offset-2">
-          Showroom HCM
-        </h3>
-        <ul className="mt-2 space-y-1.5 text-gray-800">
-          {locations.HCM.map((loc) => (
-            <li key={loc.address} className="flex items-start gap-2">
-              <MapPin size={16} className="mt-0.5 shrink-0 text-pink-500" />
-              <span className="flex-1">
-                {loc.address}
-                {loc.isNew && (
-                  <span className="ml-2 inline-block -rotate-12 transform text-pink-500 font-bold text-base">
-                    New ✨
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <h3 className="font-semibold underline underline-offset-2">
-          Showroom HN
-        </h3>
-        <ul className="mt-2 space-y-1.5 text-gray-800">
-          {locations.HN.map((loc) => (
-            <li key={loc.address} className="flex items-start gap-2">
-              <MapPin size={16} className="mt-0.5 shrink-0 text-pink-500" />
-              <span>{loc.address}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-// ==================================================================
-// THÊM MỚI: CÁC COMPONENT CON CHO PHẦN ĐÁNH GIÁ
-// ==================================================================
-
-// Component hiển thị các ngôi sao
 function StarRating({ rating = 0, totalStars = 5 }) {
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-0.5">
       {[...Array(totalStars)].map((_, index) => {
         const starValue = index + 1;
         return (
@@ -335,168 +45,640 @@ function StarRating({ rating = 0, totalStars = 5 }) {
   );
 }
 
-// Component hiển thị một mục đánh giá
-function ReviewItem({ review }) {
+/* ======================= REVIEW ITEM ======================= */
+
+function ReviewItem({ review, isOwn }) {
+  // ID, tên, avatar, ... từ review
+  const authorNameFromReview =
+    review.user?.name || review.author || "Khách hàng ẩn danh";
+
+  // Tên hiển thị chính
+  const displayName = isOwn ? "Đánh giá của bạn" : authorNameFromReview;
+
+  const avatar =
+    review.user?.avatar ||
+    review.avatar ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      authorNameFromReview
+    )}&background=random`;
+
+  const date = review.createdAt
+    ? new Date(review.createdAt).toLocaleDateString("vi-VN")
+    : "";
+
+  const rating = review.rating || 0;
+  const title = review.title;
+  const content = review.content;
+  const images = Array.isArray(review.images) ? review.images : [];
+  const isVerifiedPurchase = !!review.isVerifiedPurchase;
+
+  // 👇 Thông tin phản hồi từ admin / staff
+  const reply = review.adminReply || {};
+  const replyContent = (reply.content || "").trim();
+  const repliedAtText = reply.repliedAt
+    ? new Date(reply.repliedAt).toLocaleString("vi-VN")
+    : "";
+  const replyByName =
+    reply.repliedBy?.name || reply.repliedByName || "Admin cửa hàng";
+
   return (
     <div className="flex items-start gap-4 py-4">
       <img
-        src={review.avatar}
-        alt={review.author}
+        src={avatar}
+        alt={authorNameFromReview}
         className="size-10 rounded-full"
       />
+
       <div className="flex-1">
-        <div className="flex items-center justify-between">
+        {/* Header: tên + ngày + rating + badge */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-semibold text-gray-900">{review.author}</p>
-            <p className="text-xs text-gray-500">{review.date}</p>
+            <p className="font-semibold text-gray-900">{displayName}</p>
+            {date && (
+              <p className="text-xs text-gray-500">
+                {isOwn ? `Bạn đánh giá ngày ${date}` : date}
+              </p>
+            )}
           </div>
-          <StarRating rating={review.rating} />
+
+          <div className="flex items-center gap-2">
+            <StarRating rating={rating} />
+            {isVerifiedPurchase && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                <CheckCircle2 size={12} />
+                Đã mua hàng
+              </span>
+            )}
+          </div>
         </div>
-        <p className="mt-2 text-gray-700 leading-relaxed">{review.content}</p>
+
+        {/* Tiêu đề */}
+        {title && (
+          <p className="mt-2 text-sm font-semibold text-gray-900">{title}</p>
+        )}
+
+        {/* Nội dung */}
+        {content && (
+          <p className="mt-1 text-sm text-gray-700 leading-relaxed">
+            {content}
+          </p>
+        )}
+
+        {/* Ảnh đính kèm */}
+        {images.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {images.map((url, idx) => (
+              <div
+                key={idx}
+                className="h-16 w-16 overflow-hidden rounded-lg border bg-gray-50"
+              >
+                <img
+                  src={url}
+                  alt={`review-${idx}`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 👇 Phản hồi từ admin / CSKH */}
+        {replyContent && (
+          <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
+            <div className="mb-1 flex items-center gap-2 font-semibold text-gray-900">
+              <MessageCircle size={14} className="text-red-500" />
+              <span>Phản hồi từ {replyByName}</span>
+            </div>
+            <p className="text-gray-700 whitespace-pre-line">{replyContent}</p>
+            {repliedAtText && (
+              <p className="mt-1 text-xs text-gray-400">
+                Trả lời ngày {repliedAtText}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Component chính cho khu vực đánh giá
-function ProductReviews({ reviews = [] }) {
-  if (!reviews.length) return null;
+/* ======================= PRODUCT REVIEWS LIST ======================= */
 
+function ProductReviews({ reviews = [], loading, currentUserId }) {
   const totalReviews = reviews.length;
-  const averageRating = (
-    reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
-  ).toFixed(1);
+
+  const averageRating =
+    totalReviews > 0
+      ? reviews.reduce((sum, review) => sum + (review.rating || 0), 0) /
+        totalReviews
+      : 0;
+
+  const averageRatingDisplay = averageRating.toFixed(1);
 
   return (
-    <section className="rounded-xl bg-white shadow-sm p-5">
+    <section id="reviews" className="rounded-xl bg-white shadow-sm p-5">
       <h2 className="text-xl font-bold mb-4">Đánh giá từ khách hàng</h2>
 
-      {/* Tóm tắt đánh giá */}
-      <div className="flex items-center gap-4 p-4 rounded-lg bg-gray-50 mb-4">
-        <div className="text-4xl font-bold text-gray-800">{averageRating}</div>
-        <div>
-          <StarRating rating={Math.round(averageRating)} />
-          <p className="text-sm text-gray-600">
-            Dựa trên {totalReviews} đánh giá
-          </p>
+      {/* Loading */}
+      {loading && !totalReviews && (
+        <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Đang tải đánh giá...</span>
         </div>
-      </div>
+      )}
 
-      {/* Danh sách các đánh giá */}
-      <div className="divide-y">
-        {reviews.map((review) => (
-          <ReviewItem key={review.id} review={review} />
-        ))}
-      </div>
+      {/* Không có review */}
+      {!loading && totalReviews === 0 && (
+        <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+          Chưa có đánh giá cho sản phẩm này. Hãy là người đầu tiên chia sẻ trải
+          nghiệm của bạn!
+        </div>
+      )}
 
-      {/* === THAY ĐỔI TẠI ĐÂY === */}
-      <div className="mt-4 text-center">
-        <Button variant="secondary" size="md" className="h-10">
-          Xem thêm đánh giá
-        </Button>
-      </div>
+      {/* Có review */}
+      {totalReviews > 0 && (
+        <>
+          {/* Summary */}
+          <div className="mb-4 flex items-center gap-4 rounded-lg bg-gray-50 p-4">
+            <div className="text-4xl font-bold text-gray-800">
+              {averageRatingDisplay}
+            </div>
+            <div>
+              <StarRating rating={Math.round(averageRating)} />
+              <p className="text-sm text-gray-600">
+                Dựa trên {totalReviews} đánh giá
+              </p>
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="divide-y">
+            {reviews.map((review) => {
+              // Chuẩn hoá userId trong review: có thể là object {_id}, {id} hoặc string
+              const reviewUserId =
+                review.user?._id || review.user?.id || review.user || null;
+
+              const isOwn =
+                !!currentUserId &&
+                !!reviewUserId &&
+                String(reviewUserId) === String(currentUserId);
+
+              return (
+                <ReviewItem
+                  key={review._id || review.id}
+                  review={review}
+                  isOwn={isOwn}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
     </section>
   );
 }
 
+/* ======================= BEST SELLERS ROW ======================= */
+
+function RowBestSellers({ title, href, category, limit = 10 }) {
+  const { data, isLoading, isError } = useBestSellers({ category, limit });
+  return (
+    <ProductRow
+      title={title}
+      viewAllHref={href}
+      products={data?.list}
+      loading={isLoading}
+      error={isError}
+    />
+  );
+}
+
+/* ======================= MAIN: PRODUCT DETAIL PAGE ======================= */
+
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const { add } = useCart();
-  // Tìm product theo id từ URL, nếu không có thì lấy sản phẩm đầu tiên
-  const product = useMemo(() => MOCK.find((p) => p.id === id) ?? MOCK[0], [id]);
+  const location = useLocation();
+
+  const { addToCart, isAdding } = useCart();
+  const { user, isAuthenticated } = useAuth();
+  const reviewsRef = useRef(null);
+
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
+  const { data: product, isLoading, isError, error } = useProduct(slug);
+
+  const productId = product?._id || product?.id;
+
+  // ✅ Chuẩn hoá currentUserId theo nhiều khả năng BE trả
+  const currentUserId = user?._id || user?.id || user?.userId || null;
+
+  // ✅ LẤY REVIEW THẬT TỪ API
+  const {
+    data: reviewsResult,
+    isLoading: isLoadingReviews,
+    isError: isErrorReviews, // nếu cần debug
+  } = useProductReviews({
+    productId,
+    page: 1,
+    limit: 10,
+  });
+
+  const rawReviews = reviewsResult?.data || [];
+
+  const reviews = useMemo(() => {
+    return rawReviews.filter((r) => {
+      const isOwn =
+        currentUserId &&
+        (r.user?._id === currentUserId || r.user === currentUserId);
+      return r.isVisible || isOwn;
+    });
+  }, [rawReviews, currentUserId]);
+  const totalReviews = reviews.length;
+
+  const averageRating = useMemo(() => {
+    if (!reviews.length) return 0;
+    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return sum / reviews.length;
+  }, [reviews]);
+
+  const averageRatingDisplay = averageRating.toFixed(1);
+
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+
+    const result = [];
+    const seen = new Set();
+
+    const push = (src) => {
+      if (!src) return;
+      if (seen.has(src)) return;
+      seen.add(src);
+      result.push(src);
+    };
+
+    if (Array.isArray(product.images) && product.images.length) {
+      push(product.images[0]);
+      product.images.slice(1).forEach(push);
+    }
+
+    if (Array.isArray(product.thumbnails) && product.thumbnails.length) {
+      product.thumbnails.forEach(push);
+    }
+
+    if (!result.length && Array.isArray(product.thumbnails)) {
+      product.thumbnails.forEach(push);
+    }
+
+    return result;
+  }, [product]);
+
+  const scrollToReviews = () => {
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const hasDiscount = product?.discountPercent > 0;
+
+  const originalPrice = Number(product?.price || 0);
+  const finalPrice =
+    hasDiscount && product.priceSale != null
+      ? Number(product.priceSale)
+      : originalPrice;
+
+  const redirectToLogin = () => {
+    navigate(PATHS.LOGIN, {
+      state: {
+        from: location.pathname + location.search,
+        reason: "need_auth_to_buy",
+      },
+    });
+  };
+
+  const handleContactZalo = () => {
+    if (!product) return;
+
+    if (!ZALO_CONTACT_URL) {
+      toast.info("Vui lòng cấu hình VITE_ZALO_CONTACT_URL trong file .env");
+      return;
+    }
+
+    window.open(ZALO_CONTACT_URL, "_blank", "noopener,noreferrer");
+  };
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      redirectToLogin();
+      return;
+    }
+
+    if (!product || product.stock === 0) {
+      toast.error("Sản phẩm đã hết hàng");
+      return;
+    }
+
+    addToCart(
+      {
+        productId: product._id || product.id,
+        qty: 1,
+      },
+      {
+        onSuccess: () => {
+          navigate(PATHS.CART);
+        },
+      }
+    );
+  };
+
+  /* ======================= LOADING / ERROR ======================= */
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto px-3 py-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+          <span className="ml-3 text-gray-600">Đang tải sản phẩm...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    console.error("❌ API Error:", error);
+    return (
+      <div className="max-w-6xl mx-auto px-3 py-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <p className="text-red-600 text-lg mb-2">
+            {error?.message || "Không tìm thấy sản phẩm"}
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            Debug: {JSON.stringify(error)}
+          </p>
+          <Button variant="primary" onClick={() => navigate(`${PATHS.HOME}`)}>
+            Về trang chủ
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    console.warn("⚠️ No product data returned");
+    return (
+      <div className="max-w-6xl mx-auto px-3 py-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <p className="text-gray-600 text-lg mb-4">Không tìm thấy sản phẩm</p>
+          <Button variant="primary" onClick={() => navigate(`${PATHS.HOME}`)}>
+            Về trang chủ
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ======================= NORMAL RENDER ======================= */
+
+  const description = product.description;
+  const isDescriptionLong = description && description.split("\n").length > 5;
+  const descriptionClasses = `prose max-w-none mb-6 transition-max-h duration-500 ${
+    isDescriptionExpanded ? "max-h-full" : "line-clamp-5"
+  }`;
 
   return (
     <div className="max-w-6xl mx-auto px-3 py-6">
+      {/* TOP: 2 CỘT - GALLERY + INFO */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ảnh lớn */}
-        <div className="rounded-xl overflow-hidden bg-white shadow-sm">
-          <img
-            src={product.image}
-            alt={product.title}
-            className="w-full h-[420px] object-cover"
-          />
-        </div>
+        <ProductGallery images={galleryImages} title={product.title} />
 
-        {/* Thông tin mua hàng */}
         <div className="rounded-xl bg-white shadow-sm p-5">
-          <h1 className="text-2xl font-bold">{product.title}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+            {product.title}
+          </h1>
 
-          <div className="mt-3 flex items-baseline gap-3">
-            {product.oldPrice && product.oldPrice > product.price && (
-              <div className="text-gray-400 line-through">
-                {product.oldPrice.toLocaleString()}đ
-              </div>
+          {/* Rating + link scroll xuống reviews */}
+          <div className="mt-3 flex items-center gap-3">
+            {totalReviews > 0 ? (
+              <>
+                <StarRating rating={Math.round(averageRating)} />
+                <button
+                  onClick={scrollToReviews}
+                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                >
+                  {averageRatingDisplay} ({totalReviews} đánh giá)
+                </button>
+              </>
+            ) : (
+              <span className="text-sm text-gray-500">
+                Chưa có đánh giá nào
+              </span>
             )}
+          </div>
+
+          {/* Giá */}
+          <div className="mt-4 flex items-center gap-3 flex-wrap">
+            {hasDiscount && (
+              <>
+                <div className="text-lg text-gray-400 line-through">
+                  {originalPrice.toLocaleString()}đ
+                </div>
+
+                <span className="inline-flex items-center rounded-full border border-red-500 px-2 py-0.5 text-xs font-semibold text-red-600 bg-red-50">
+                  -{product.discountPercent}%
+                </span>
+              </>
+            )}
+
             <div className="text-3xl font-bold text-red-600">
-              {product.price.toLocaleString()}đ
+              {finalPrice.toLocaleString()}đ
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button variant="primary" size="md">
-              MUA NGAY
-            </Button>
+          {/* ✅ [NEW] KHU VỰC QUÀ TẶNG & KHUYẾN MÃI */}
+          {((product.gifts && product.gifts.length > 0) ||
+            product.promotionText) && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg animate-fade-in">
+              <h3 className="font-bold text-red-700 flex items-center gap-2 text-sm uppercase mb-2">
+                <Gift size={18} /> Quà tặng & Ưu đãi
+              </h3>
+
+              {/* Promotion Text */}
+              {product.promotionText && (
+                <div className="mb-2 text-sm font-medium text-red-600 flex items-start gap-2">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
+                  {product.promotionText}
+                </div>
+              )}
+
+              {/* List Quà */}
+              {product.gifts?.length > 0 && (
+                <ul className="space-y-1.5">
+                  {product.gifts.map((gift, idx) => (
+                    <li
+                      key={idx}
+                      className="text-sm text-gray-700 flex items-start gap-2"
+                    >
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+                      <span className="font-medium">{gift}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/* Tồn kho */}
+          <div className="mt-3">
+            {product.stock > 0 ? (
+              <span className="text-sm text-green-600">
+                ✓ Còn hàng ({product.stock} sản phẩm)
+              </span>
+            ) : (
+              <span className="text-sm text-red-600">✗ Hết hàng</span>
+            )}
+          </div>
+
+          {/* Nút hành động */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
             <Button
-              variant="secondary"
+              variant="zalo"
+              size="md"
+              onClick={handleContactZalo}
+              className="bg-[#0A7CFF] hover:bg-[#0564cc] text-white"
+            >
+              <span className="flex items-center justify-center gap-2">
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Icon_of_Zalo.svg/1200px-Icon_of_Zalo.svg.png"
+                  alt="Zalo"
+                  className="w-5 h-5"
+                />
+                <span>Liên hệ tư vấn qua Zalo</span>
+              </span>
+            </Button>
+
+            <Button
+              variant="primary"
               size="md"
               startIcon={<ShoppingCart size={16} />}
-              onClick={() => {
-                add(product, 1); // thêm sản phẩm
-                navigate("/cart"); // chuyển sang giỏ hàng
-              }}
+              disabled={product.stock === 0 || isAdding}
+              onClick={handleAddToCart}
+              className="cursor-pointer"
             >
-              THÊM VÀO GIỎ
+              {isAdding ? "⏳ Đang thêm..." : "THÊM VÀO GIỎ"}
             </Button>
           </div>
 
-          {/* === THAY ĐỔI TẠI ĐÂY === */}
-          {/* 1. Xóa bỏ dòng <p> mô tả ngắn */}
-          {/* <p className="mt-5 text-gray-700">{product.description}</p> */}
+          {/* Highlight text */}
+          {product.highlightText && (
+            <div className="mt-5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 leading-relaxed">
+                ✨ {product.highlightText}
+              </p>
+            </div>
+          )}
 
-          {/* 2. Thêm component ShowroomLocations */}
-          <ShowroomLocations locations={SHOWROOMS_MOCK} />
+          {/* Chính sách */}
+          <div className="mt-5 border-t pt-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Chính sách</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link
+                  to={PATHS.WARRANTY_POLICY}
+                  className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                >
+                  📦 Chính sách đổi trả 7 ngày
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to={PATHS.WARRANTY_POLICY}
+                  className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                >
+                  🛡️ Chính sách bảo hành
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to={PATHS.INSTALLMENT_INSTRUCTIONS}
+                  className="text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                >
+                  💳 Hướng dẫn thanh toán & trả góp
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
-      {/* Thông tin sản phẩm + Cấu hình (gộp) */}
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2 rounded-xl bg-white shadow-sm p-5">
-          <h2 className="text-xl font-bold mb-3">Thông tin sản phẩm</h2>
-          <p className="text-gray-700 leading-relaxed">{product.description}</p>
+      {/* MÔ TẢ + CẤU HÌNH */}
+      <div className="mt-6 rounded-xl bg-white shadow-sm p-6">
+        <h2 className="text-2xl font-bold mb-4">Thông tin sản phẩm</h2>
 
-          <h3 className="mt-6 text-lg font-semibold">Cấu hình chi tiết</h3>
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-[520px] w-full text-sm border-collapse">
-              <tbody>
-                {product.specs?.map(([k, v]) => (
-                  <tr key={k} className="border-b">
-                    <td className="py-2 pr-4 font-medium text-gray-600 w-40">
-                      {k}
-                    </td>
-                    <td className="py-2 text-gray-900">{v}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <div className="relative">
+          {description ? (
+            <>
+              <div className={descriptionClasses}>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                  {description}
+                </p>
+              </div>
 
-        {/* hộp hỗ trợ/đổi trả (tùy chọn) */}
-        <aside className="rounded-xl bg-white shadow-sm p-5 space-y-3">
-          <div className="font-semibold">Chính sách</div>
-          <ul className="text-sm text-gray-700 list-disc ml-5 space-y-1">
-            <li>Đổi mới 7 ngày nếu lỗi nhà sản xuất.</li>
-            <li>Bảo hành theo quy định hãng/nhà phân phối.</li>
-            <li>Hỗ trợ trả góp qua thẻ tín dụng.</li>
-          </ul>
-        </aside>
+              {isDescriptionLong && (
+                <div
+                  className={`relative ${
+                    isDescriptionExpanded
+                      ? ""
+                      : 'before:content-[""] before:absolute before:inset-0 before:bg-gradient-to-t before:from-white before:to-transparent'
+                  }`}
+                >
+                  <button
+                    onClick={() =>
+                      setIsDescriptionExpanded(!isDescriptionExpanded)
+                    }
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 transform text-sm font-medium text-blue-600 hover:text-blue-700 bg-white border border-gray-200 rounded-full px-4 py-2 flex items-center gap-1 shadow-md cursor-pointer"
+                    style={{
+                      marginTop: isDescriptionExpanded ? "10px" : "-20px",
+                    }}
+                  >
+                    {isDescriptionExpanded ? (
+                      <>
+                        Thu gọn <ChevronUp size={16} />
+                      </>
+                    ) : (
+                      <>
+                        Xem thêm <ChevronDown size={16} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-gray-500 italic p-4 border border-dashed rounded-lg bg-gray-50">
+              ... Nội dung mô tả đang được cập nhật.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-gray-100">
+          <h3 className="text-xl font-semibold mb-4">Cấu hình chi tiết</h3>
+          <SpecsTable specs={product.specs || {}} />
+        </div>
       </div>
 
-      {/* THÊM MỚI: GỌI COMPONENT ĐÁNH GIÁ TẠI ĐÂY */}
-      <div className="mt-6">
-        <ProductReviews reviews={REVIEWS_MOCK} />
+      {/* REVIEWS */}
+      <div ref={reviewsRef} className="mt-6">
+        <ProductReviews
+          reviews={reviews}
+          loading={isLoadingReviews}
+          currentUserId={currentUserId}
+        />
       </div>
+
+      {/* SẢN PHẨM LIÊN QUAN */}
+      <RowBestSellers
+        title="Sản phẩm liên quan"
+        href={`/collections/${product.category}`}
+        category={product.category}
+      />
     </div>
   );
 }

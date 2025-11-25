@@ -1,118 +1,108 @@
+// src/components/Categories/CategoriesSection.jsx
 import { Link } from "react-router-dom";
+import { useCategories } from "../../hooks/useCategories";
 
-const FALLBACK_CATS = [
-  {
-    name: "Laptop",
-    img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=300&auto=format&fit=crop",
-    slug: "laptop",
-  },
-  {
-    name: "PC",
-    img: "https://images.unsplash.com/photo-1511452885600-a3d2c9148a31?q=80&w=300&auto=format&fit=crop",
-    slug: "pc",
-  },
-  {
-    name: "Màn hình",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=300&auto=format&fit=crop",
-    slug: "monitor",
-  },
-  {
-    name: "Mainboard",
-    img: "https://images.unsplash.com/photo-1587202372775-98927b585b60?q=80&w=300&auto=format&fit=crop",
-    slug: "mainboard",
-  },
-  {
-    name: "CPU",
-    img: "https://images.unsplash.com/photo-1614064641938-3bbee52958a5?q=80&w=300&auto=format&fit=crop",
-    slug: "cpu",
-  },
-  {
-    name: "VGA",
-    img: "https://images.unsplash.com/photo-1618681662375-2b4b9fee1b7e?q=80&w=300&auto=format&fit=crop",
-    slug: "vga",
-  },
-  {
-    name: "RAM",
-    img: "https://images.unsplash.com/photo-1587202372766-1f99bb68f21f?q=80&w=300&auto=format&fit=crop",
-    slug: "ram",
-  },
-  {
-    name: "Ổ cứng",
-    img: "https://images.unsplash.com/photo-1614064641938-3bbee52958a5?q=80&w=300&auto=format&fit=crop",
-    slug: "storage",
-  },
-  {
-    name: "Case",
-    img: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?q=80&w=300&auto=format&fit=crop",
-    slug: "case",
-  },
-  {
-    name: "Tản nhiệt",
-    img: "https://images.unsplash.com/photo-1587202373009-c1c1b1f0b6f3?q=80&w=300&auto=format&fit=crop",
-    slug: "cooling",
-  },
-  {
-    name: "Bàn phím",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=300&auto=format&fit=crop",
-    slug: "keyboard",
-  },
-  {
-    name: "Chuột",
-    img: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e1a?q=80&w=300&auto=format&fit=crop",
-    slug: "mouse",
-  },
-  {
-    name: "Tai nghe",
-    img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=300&auto=format&fit=crop",
-    slug: "headset",
-  },
-  {
-    name: "Loa",
-    img: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=300&auto=format&fit=crop",
-    slug: "speaker",
-  },
-  {
-    name: "Console",
-    img: "https://images.unsplash.com/photo-1606813907291-76a5c4a3b0f8?q=80&w=300&auto=format&fit=crop",
-    slug: "console",
-  },
-  {
-    name: "Phụ kiện",
-    img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=300&auto=format&fit=crop",
-    slug: "accessory",
-  },
-];
+const COLS = 10;
+const IMAGE_SIZE = "72px"; // Đã giảm kích thước ảnh một chút (từ 80px xuống 72px)
 
-export default function CategoriesSection({
-  title = "Danh mục sản phẩm",
-  categories = FALLBACK_CATS, // fallback nếu chưa có API
-}) {
+export default function CategoriesSection({ title = "Danh mục sản phẩm" }) {
+  const { categories = [], isLoading, error } = useCategories();
+
+  // Chia mảng thành các hàng, mỗi hàng tối đa 10 item
+  const rows = chunkArray(categories, COLS);
+
   return (
     <section className="rounded-xl bg-white shadow-sm">
       <div className="border-b px-4 py-3">
         <h2 className="text-lg font-bold">{title}</h2>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6 p-6">
-        {categories.map((c) => (
-          <Link
-            key={c.slug}
-            to={`/collections/${c.slug}`}
-            className="group flex flex-col items-center text-center"
+      <div className="p-6 space-y-6">
+        {/* Loading skeleton: giữ khung 10 cột */}
+        {isLoading && (
+          <div
+            className="grid gap-6"
+            style={{ gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))` }}
           >
-            <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-gray-50 shadow-sm group-hover:shadow transition">
-              <img
-                src={c.img}
-                alt={c.name}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-            <div className="mt-3 text-sm font-medium text-gray-800 group-hover:text-black">
-              {c.name}
-            </div>
-          </Link>
-        ))}
+            {Array.from({ length: COLS }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center text-center">
+                <div
+                  className="rounded-xl bg-gray-100 animate-pulse"
+                  style={{ height: IMAGE_SIZE, width: IMAGE_SIZE }}
+                />
+                <div className="mt-3 h-3 w-16 rounded bg-gray-100 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && error && (
+          <div className="text-sm text-red-600">
+            Không tải được danh mục. Vui lòng thử lại.
+          </div>
+        )}
+
+        {!isLoading &&
+          !error &&
+          rows.length > 0 &&
+          rows.map((row, idx) => {
+            const cols = row.length === COLS ? COLS : row.length; // hàng cuối < 10 → k cột
+            return (
+              <div
+                key={idx}
+                className="grid gap-6"
+                style={{
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                }}
+              >
+                {row.map((c) => (
+                  <Link
+                    key={c._id || c.slug}
+                    to={`/collections/${c.slug}`}
+                    title={c.slug}
+                    className="group flex flex-col items-center text-center"
+                  >
+                    {/* CARD IMAGE CONTAINER */}
+                    {/* Đã giảm kích thước từ h-20 w-20 (80px) xuống 72px */}
+                    <div
+                      className="relative overflow-hidden rounded-xl group-hover:shadow transition mx-auto flex items-center justify-center p-2" // Thêm flexbox và padding
+                      style={{ height: IMAGE_SIZE, width: IMAGE_SIZE }}
+                    >
+                      {c.image ? (
+                        <img
+                          src={c.image}
+                          alt={c.slug}
+                          className="max-h-full max-w-full object-contain" // Thay đổi object-cover thành object-contain và loại bỏ absolute inset-0
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="grid place-items-center text-xs text-gray-400">
+                          no-image
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 w-full truncate text-sm font-medium text-gray-800 group-hover:text-black">
+                      {c.slug}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
+
+        {!isLoading && !error && categories.length === 0 && (
+          <div className="text-sm text-gray-500">Chưa có danh mục nào.</div>
+        )}
       </div>
     </section>
   );
+}
+
+function chunkArray(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }

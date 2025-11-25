@@ -10,13 +10,19 @@ import cartRoutes from "./cart.routes.js";
 import orderRoutes from "./order.routes.js";
 import exportRoutes from "./export.routes.js";
 import addressRoutes from "./address.routes.js";
-
+import reviewRoutes from "./review.routes.js";
+import reportRoutes from "./report.routes.js";
+import customerRoutes from "./customer.routes.js";
+import dashboardRoutes from "./dashboard.routes.js";
+import bannerRoutes from "./banner.routes.js";
+import couponRoutes from "./coupon.routes.js";
+import chatRoutes from "./chat.route.js";
 //route admin
-import orderAdminRoutes from "./order.admin.routes.js";
 import staffRoutes from "./staff.routes.js";
+
 const router = Router();
 router.use("/auth", authRoutes);
-router.use("/addresses", addressRoutes); // ✅ thêm
+router.use("/addresses", addressRoutes);
 router.use("/products", productRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/brands", brandRoutes);
@@ -25,11 +31,17 @@ router.use("/conversations", conversationRoutes);
 router.use("/messages", messageRoutes);
 router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
-router.use("/export", exportRoutes); // /api/export/*.xlsx
+router.use("/reviews", reviewRoutes);
+router.use("/chats", chatRoutes);
 
 //admin
-router.use("/admin/orders", orderAdminRoutes);
 router.use("/staffs", staffRoutes);
+router.use("/exports", exportRoutes); // /api/export/*.xlsx
+router.use("/reports", reportRoutes);
+router.use("/customers", customerRoutes);
+router.use("/dashboard", dashboardRoutes);
+router.use("/banners", bannerRoutes);
+router.use("/coupons", couponRoutes);
 
 // health check
 router.get("/health", (req, res) => res.json({ status: "ok" }));

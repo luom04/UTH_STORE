@@ -180,7 +180,7 @@ export default function Login() {
               type="submit"
               disabled={isPending || isResending} // ✅ Cập nhật disabled
               className="w-full h-11 flex items-center justify-center rounded-lg py-2.5 font-semibold text-white transition-all duration-300
-                     bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                     bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:bg-indigo-400 disabled:cursor-not-allowed cursor-pointer"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {isPending ? (

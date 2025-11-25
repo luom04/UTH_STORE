@@ -10,7 +10,20 @@ export const createCategorySchema = z.object({
     name: z.string().min(2, "Tên danh mục phải có ít nhất 2 ký tự").max(100),
     slug: z.string().min(2).max(120).optional(),
     description: z.string().max(500).optional(),
-    image: z.string().url("URL ảnh không hợp lệ").optional(),
+
+    // SỬA LẠI "image" VÀ THÊM "banner"
+    image: z
+      .string()
+      .url("URL ảnh không hợp lệ")
+      .or(z.literal("")) // Cho phép chuỗi rỗng ""
+      .optional(),
+    banner: z
+      .string()
+      .url("URL banner không hợp lệ")
+      .or(z.literal("")) // Cho phép chuỗi rỗng ""
+      .optional(),
+    // KẾT THÚC SỬA
+
     icon: z.string().max(50).optional(),
     parent: z.string().length(24).optional().nullable(),
     order: z.number().int().min(0).optional(),
@@ -32,7 +45,20 @@ export const updateCategorySchema = z.object({
       name: z.string().min(2).max(100).optional(),
       slug: z.string().min(2).max(120).optional(),
       description: z.string().max(500).optional(),
-      image: z.string().url().optional(),
+
+      // SỬA LẠI "image" VÀ THÊM "banner"
+      image: z
+        .string()
+        .url("URL ảnh không hợp lệ")
+        .or(z.literal("")) // Cho phép chuỗi rỗng ""
+        .optional(),
+      banner: z
+        .string()
+        .url("URL banner không hợp lệ")
+        .or(z.literal("")) // Cho phép chuỗi rỗng ""
+        .optional(),
+      // KẾT THÚC SỬA
+
       icon: z.string().max(50).optional(),
       parent: z.string().length(24).optional().nullable(),
       order: z.number().int().min(0).optional(),

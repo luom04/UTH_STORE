@@ -33,6 +33,9 @@ export default function ProductsTable({
       <td className="px-3 py-2 font-semibold text-red-600">
         {p.price?.toLocaleString()}đ
       </td>
+      <td className="px-3 py-2 font-semibold text-red-600">
+        {p.priceSale?.toLocaleString()}đ
+      </td>
       <td className="px-3 py-2">
         {/* ✅ Stock controls - CẢ ADMIN & STAFF đều có */}
         <div className="flex items-center gap-2">
@@ -100,7 +103,8 @@ export default function ProductsTable({
           <tr className="bg-gray-50 text-gray-600">
             <th className="px-3 py-2 text-left">Sản phẩm</th>
             <th className="px-3 py-2 text-left">Danh mục</th>
-            <th className="px-3 py-2 text-left">Giá</th>
+            <th className="px-3 py-2 text-left">Giá gốc</th>
+            <th className="px-3 py-2 text-left">Giá sale</th>
             <th className="px-3 py-2 text-left">Kho</th>
             <th className="px-3 py-2 text-left">Trạng thái</th>
             <th className="px-3 py-2 text-left">Cập nhật</th>
