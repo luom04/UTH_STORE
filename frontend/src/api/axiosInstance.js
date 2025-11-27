@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // ✅ Track refreshing để tránh multiple calls
@@ -21,7 +21,7 @@ const processQueue = (error) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve();
+      prom.resolve(axiosInstance(prom.config));
     }
   });
   failedQueue = [];
@@ -39,11 +39,12 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // ✅ Danh sách routes KHÔNG auto-refresh
+    // ✅ Các route KHÔNG auto-retry
     const noRetryRoutes = [
       "/auth/refresh",
       "/auth/login",
       "/auth/register",
+      "/auth/logout", // ✅ QUAN TRỌNG: Thêm logout
       "/auth/verify-email",
       "/auth/resend-verification",
       "/auth/request-password-reset",
@@ -56,60 +57,64 @@ axiosInstance.interceptors.response.use(
       originalRequest.url?.includes(route)
     );
 
-    // ✅ Nếu là no-retry route hoặc đã retry → reject ngay
+    // ✅ Reject ngay với no-retry routes
     if (isNoRetryRoute || originalRequest._retry) {
-      if (error.response) {
-        const message =
-          error.response.data?.message || "Có lỗi xảy ra từ server";
-        return Promise.reject(new Error(message));
-      }
-      if (error.request) {
-        return Promise.reject(new Error("Không thể kết nối đến server"));
-      }
-      return Promise.reject(new Error(error.message || "Có lỗi xảy ra"));
+      return Promise.reject(error);
     }
 
-    // ✅ Xử lý 401 - Auto refresh
+    // ✅ Xử lý 401
     if (error.response?.status === 401) {
       if (isRefreshing) {
-        // Đang refresh → add vào queue
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(() => axiosInstance(originalRequest))
-          .catch((err) => Promise.reject(err));
+          failedQueue.push({ resolve, reject, config: originalRequest });
+        });
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Gọi refresh
         await axiosInstance.post("/auth/refresh");
-
-        isRefreshing = false;
         processQueue(null);
-
-        // Retry original request
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        isRefreshing = false;
         processQueue(refreshError);
 
-        // ✅ QUAN TRỌNG: Clear cookies và redirect
-        console.error("⛔ Refresh token failed - redirecting to login");
+        console.error("⛔ Refresh token failed");
 
-        // Clear local state (nếu có)
-        localStorage.clear();
+        // ✅ Clear data
+        localStorage.removeItem("user");
+        sessionStorage.clear();
 
-        // Redirect to login (chỉ 1 lần)
-        if (!window.location.pathname.includes(`${PATHS.HOME}`)) {
-          window.location.href = `${PATHS.LOGIN}`;
+        // ✅ Chỉ redirect nếu:
+        // 1. Không phải đang ở trang public
+        // 2. Refresh thất bại do token hết hạn (không phải network error)
+        const currentPath = window.location.pathname;
+        const publicPaths = [
+          PATHS.LOGIN,
+          PATHS.REGISTER,
+          PATHS.HOME,
+          "/products", // ✅ Thêm các trang public khác
+          "/about",
+        ];
+
+        const isPublicPath = publicPaths.some((path) =>
+          currentPath.includes(path)
+        );
+
+        const isAuthError =
+          refreshError.response?.status === 401 ||
+          refreshError.response?.status === 403;
+
+        if (!isPublicPath && isAuthError) {
+          window.location.href = `${PATHS.LOGIN}?redirect=${encodeURIComponent(
+            currentPath
+          )}`;
         }
 
-        return Promise.reject(
-          new Error("Session expired. Please login again.")
-        );
+        return Promise.reject(new Error("Phiên đăng nhập đã hết hạn"));
+      } finally {
+        isRefreshing = false;
       }
     }
 

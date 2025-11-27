@@ -63,11 +63,11 @@ export function useLogin() {
       if (status === 403) {
         if (message.includes("deactivated")) {
           toast.error(
-            "⛔ Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+            " Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
           );
         } else if (message.includes("verify your email")) {
           toast.error(
-            "📧 Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn!",
+            " Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn!",
             {
               duration: 5000,
             }
@@ -85,13 +85,13 @@ export function useLogin() {
           );
         } else {
           // ✅ MẶC ĐỊNH: Sai email/password
-          toast.error("❌ Email hoặc mật khẩu không đúng.");
+          toast.error(" Email hoặc mật khẩu không đúng.");
         }
       }
 
       // 500 - Server error
       else if (status === 500) {
-        toast.error("🔧 Lỗi máy chủ. Vui lòng thử lại sau.");
+        toast.error(" Lỗi máy chủ. Vui lòng thử lại sau.");
       }
 
       // Lỗi khác
