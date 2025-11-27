@@ -17,7 +17,7 @@ const bannerSchema = new mongoose.Schema(
     // Phân loại vị trí hiển thị
     type: {
       type: String,
-      enum: ["slider", "right", "bottom"],
+      enum: ["slider", "right", "bottom", "side-left", "side-right"],
       default: "slider",
       required: true,
     },

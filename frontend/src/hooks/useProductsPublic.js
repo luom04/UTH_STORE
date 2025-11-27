@@ -39,7 +39,7 @@ export function useCatalogProducts(params) {
   });
 }
 
-export function useSearchSuggest(q, { limit = 8, enabled } = {}) {
+export function useSearchSuggest(q, { limit = 6, enabled } = {}) {
   return useQuery({
     queryKey: ["searchSuggest", q, limit],
     queryFn: () => apiSearchSuggest({ q, limit }),
@@ -105,5 +105,38 @@ export function useProduct(idOrSlug) {
             : undefined,
       };
     },
+  });
+}
+
+// ✅ [FIXED] Hook cho trang Search Result
+export function useProductSearch({ q, limit = 20 }) {
+  const hasQuery = !!(q && q.trim());
+
+  return useQuery({
+    queryKey: ["searchProducts", { q, limit }],
+    enabled: hasQuery,
+
+    queryFn: async () => {
+      const response = await apiListProductsPublic({
+        q: q.trim(),
+        page: 1,
+        limit,
+        sort: "-sold,-rating,-updatedAt",
+        status: "active",
+        fields:
+          "title,slug,images,price,priceSale,brand,category,sold,rating,ratingCount,specs,discountPercent",
+      });
+
+      // 🚨 Backend trả về { success, data, meta }
+      // Transform về format component expect: { list, total }
+      return {
+        list: response.data || [], // ← FIX: response.data thay vì response.list
+        total: response.meta?.total || 0, // ← FIX: response.meta.total
+        meta: response.meta || {},
+      };
+    },
+
+    keepPreviousData: true,
+    staleTime: 30000,
   });
 }

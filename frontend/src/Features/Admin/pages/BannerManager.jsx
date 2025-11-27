@@ -1,8 +1,9 @@
 // src/Features/Admin/pages/BannerManager.jsx
+
 import { useState, useMemo } from "react";
 import { useAdminBanners, useBannerActions } from "../../../hooks/useBanners";
 import { useUploadToCloudinary } from "../../../hooks/useUploads";
-import { useAdminCoupons } from "../../../hooks/useCoupons"; // ✅ Hook lấy danh sách voucher
+
 import {
   Plus,
   Pencil,
@@ -12,15 +13,24 @@ import {
   LayoutTemplate,
   Image as ImageIcon,
   Link as LinkIcon,
-  Ticket,
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 
-// --- 1. COMPONENT: MỘT SLOT BANNER (GIỮ NGUYÊN) ---
+// --- 1. COMPONENT: MỘT SLOT BANNER ---
+
 function BannerSlot({ banner, type, index, onAdd, onEdit, onDelete }) {
+  const typeLabelMap = {
+    slider: "SLIDER",
+    right: "RIGHT",
+    bottom: "BOTTOM",
+    "side-left": "SIDE LEFT",
+    "side-right": "SIDE RIGHT",
+  };
+
+  const typeLabel = typeLabelMap[type] || type;
   if (!banner) {
     return (
       <div
@@ -74,12 +84,14 @@ function BannerSlot({ banner, type, index, onAdd, onEdit, onDelete }) {
       {/* Badge Info */}
       <div className="absolute bottom-2 left-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm pointer-events-none truncate">
         {banner.title || "Banner không tiêu đề"}
+        <span className="uppercase">{typeLabel}</span>
       </div>
     </div>
   );
 }
 
-// --- 2. COMPONENT: SLIDER EDITOR (GIỮ NGUYÊN) ---
+// --- 2. COMPONENT: SLIDER EDITOR ---
+
 function SliderEditor({ banners, onAdd, onEdit, onDelete }) {
   const [emblaRef] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 4000 }),
@@ -142,13 +154,10 @@ function SliderEditor({ banners, onAdd, onEdit, onDelete }) {
   );
 }
 
-// --- 3. TRANG CHÍNH (CẬP NHẬT LOGIC FORM) ---
+// --- 3. TRANG CHÍNH ---
+
 export default function BannerManager() {
   const { data: banners, isLoading } = useAdminBanners();
-
-  // ✅ Lấy danh sách voucher để chọn trong form
-  const { data: coupons = [] } = useAdminCoupons();
-
   const { createMut, updateMut, deleteMut } = useBannerActions();
   const { mutateAsync: uploadFile, isPending: isUploading } =
     useUploadToCloudinary();
@@ -162,16 +171,15 @@ export default function BannerManager() {
     title: "",
     subtitle: "",
     image: "",
-    link: "", // Giữ để tương thích ngược
     type: "slider",
     order: 0,
     isActive: true,
 
-    // ✅ Các trường mới cho Điều hướng Dynamic
-    linkType: "category", // category | product | promotion | custom
-    linkTarget: "",
-    couponCode: "",
+    // UI fields
+    linkType: "category", // category | product
+    linkTarget: "", // slug danh mục / sản phẩm
   };
+
   const [form, setForm] = useState(initialForm);
 
   const grouped = useMemo(() => {
@@ -186,6 +194,12 @@ export default function BannerManager() {
       bottom: banners
         .filter((b) => b.type === "bottom")
         .sort((a, b) => a.order - b.order),
+      sideLeft: banners
+        .filter((b) => b.type === "side-left")
+        .sort((a, b) => a.order - b.order),
+      sideRight: banners
+        .filter((b) => b.type === "side-right")
+        .sort((a, b) => a.order - b.order),
     };
   }, [banners]);
 
@@ -197,8 +211,27 @@ export default function BannerManager() {
   };
 
   const handleEdit = (banner) => {
+    // Map linkType DB -> UI (chỉ hỗ trợ CATEGORY & PRODUCT)
+    let uiLinkType = "category";
+    switch (banner.linkType) {
+      case "PRODUCT":
+        uiLinkType = "product";
+        break;
+      case "CATEGORY":
+        uiLinkType = "category";
+        break;
+      default:
+        uiLinkType = "category";
+    }
+
     setEditingBanner(banner);
-    setForm({ ...initialForm, ...banner });
+    setForm({
+      ...initialForm,
+      ...banner,
+      linkType: uiLinkType,
+      linkTarget: banner.linkValue || "",
+    });
+    setImageTab("upload");
     setIsModalOpen(true);
   };
 
@@ -218,43 +251,50 @@ export default function BannerManager() {
     }
   };
 
-  // ✅ Helper tự động tạo link legacy cho Backend
+  /// ✅ Preview link cho admin (chỉ category & product)
   const buildLinkFromForm = (f) => {
     const target = (f.linkTarget || "").trim();
-    const coupon = (f.couponCode || "").trim().toUpperCase();
 
-    switch (f.linkType) {
-      case "category":
-        return target ? `/collections/${target}` : "";
-      case "product":
-        return target ? `/products/${target}` : "";
-      case "promotion":
-        if (!target) return "";
-        return coupon
-          ? `/promotions/${target}?coupon=${coupon}`
-          : `/promotions/${target}`;
-      case "custom":
-        return target || "";
-      default:
-        return f.link || "";
-    }
+    if (!target) return "";
+
+    if (f.linkType === "product") return `/products/${target}`;
+    // default category
+    return `/collections/${target}`;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!form.image) return toast.error("Vui lòng chọn hoặc nhập link ảnh!");
+    if (!form.image) {
+      return toast.error("Vui lòng chọn hoặc nhập link ảnh!");
+    }
 
-    // Validate Link Target (trừ khi là custom link rỗng)
-    if (form.linkType !== "custom" && !form.linkTarget?.trim()) {
-      // Nếu không nhập target thì có thể bỏ qua, nhưng nếu user muốn link hoạt động thì cần nhắc nhở
+    const target = (form.linkTarget || "").trim();
+
+    // Map UI linkType -> ENUM backend + linkValue
+    let dbLinkType = "CATEGORY";
+    let dbLinkValue = "";
+
+    if (form.linkType === "category") {
+      dbLinkType = "CATEGORY";
+      dbLinkValue = target; // slug danh mục
+    } else if (form.linkType === "product") {
+      dbLinkType = "PRODUCT";
+      dbLinkValue = target; // slug sản phẩm
     }
 
     const payload = {
-      ...form,
-      couponCode: form.couponCode?.trim() ? form.couponCode.toUpperCase() : "",
-      link: buildLinkFromForm(form), // Auto map link
+      title: form.title,
+      subtitle: form.subtitle,
+      image: form.image,
+      type: form.type,
+      order: form.order,
+      isActive: form.isActive,
+
+      linkType: dbLinkType,
+      linkValue: dbLinkValue,
+      // couponCode không dùng nữa => BE có field thì coi như optional
+      couponCode: "",
     };
 
     if (editingBanner) {
@@ -337,7 +377,55 @@ export default function BannerManager() {
           ))}
         </div>
       </div>
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Banner quảng cáo 2 bên (Sticky)
+            </h2>
+            <p className="text-xs text-gray-500">
+              Mô phỏng 2 banner đứng ở hai bên trang (chỉ hiển thị trên màn hình
+              lớn).
+            </p>
+          </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Bên trái */}
+          <div>
+            <p className="text-xs font-semibold text-gray-600 mb-1">
+              Bên trái (side-left)
+            </p>
+            <div className="h-[200px]">
+              <BannerSlot
+                banner={grouped.sideLeft[0]}
+                type="side-left"
+                index={0}
+                onAdd={handleAdd}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
+
+          {/* Bên phải */}
+          <div>
+            <p className="text-xs font-semibold text-gray-600 mb-1">
+              Bên phải (side-right)
+            </p>
+            <div className="h-[200px]">
+              <BannerSlot
+                banner={grouped.sideRight[0]}
+                type="side-right"
+                index={0}
+                onAdd={handleAdd}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
       {/* MODAL FORM */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -369,7 +457,7 @@ export default function BannerManager() {
                 onSubmit={handleSubmit}
                 className="space-y-6"
               >
-                {/* INPUT ẢNH (GIỮ NGUYÊN) */}
+                {/* INPUT ẢNH */}
                 <div className="space-y-3">
                   <label className="block text-sm font-medium text-gray-700">
                     Hình ảnh hiển thị <span className="text-red-500">*</span>
@@ -456,7 +544,7 @@ export default function BannerManager() {
                   </div>
                 </div>
 
-                {/* INPUT TIÊU ĐỀ (GIỮ NGUYÊN) */}
+                {/* INPUT TIÊU ĐỀ */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-gray-500 uppercase">
@@ -486,7 +574,7 @@ export default function BannerManager() {
                   </div>
                 </div>
 
-                {/* ✅ NEW: CẤU HÌNH ĐIỀU HƯỚNG */}
+                {/* CẤU HÌNH ĐIỀU HƯỚNG */}
                 <div className="space-y-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-2 text-blue-800 font-semibold text-sm mb-1">
                     <LinkIcon size={16} /> Cấu hình Điều Hướng
@@ -505,34 +593,23 @@ export default function BannerManager() {
                             ...form,
                             linkType: e.target.value,
                             linkTarget: "",
-                            couponCode: "",
                           })
                         }
                       >
                         <option value="category">Danh mục (Category)</option>
                         <option value="product">Sản phẩm (Product)</option>
-                        <option value="promotion">
-                          Khuyến mãi (Promotion)
-                        </option>
-                        <option value="custom">Link Tùy chỉnh (Custom)</option>
                       </select>
                     </div>
                     <div>
                       <label className="text-[11px] text-gray-500 font-bold uppercase">
-                        {form.linkType === "custom"
-                          ? "Đường dẫn URL"
-                          : "Slug đích (Target)"}
+                        Slug đích (Target)
                       </label>
                       <input
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                         placeholder={
                           form.linkType === "category"
                             ? "VD: laptop-gaming"
-                            : form.linkType === "product"
-                            ? "VD: macbook-air-m2"
-                            : form.linkType === "custom"
-                            ? "VD: https://google.com"
-                            : "VD: black-friday"
+                            : "VD: macbook-air-m2"
                         }
                         value={form.linkTarget || ""}
                         onChange={(e) =>
@@ -542,52 +619,12 @@ export default function BannerManager() {
                     </div>
                   </div>
 
-                  {/* Chọn Coupon nếu là Promotion */}
-                  {form.linkType === "promotion" && (
-                    <div>
-                      <label className="text-[11px] text-gray-500 font-bold uppercase flex items-center gap-1">
-                        <Ticket size={12} /> Gắn Voucher (Optional)
-                      </label>
-                      <select
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        value={form.couponCode || ""}
-                        onChange={(e) =>
-                          setForm({ ...form, couponCode: e.target.value })
-                        }
-                      >
-                        <option value="">-- Không gắn voucher --</option>
-                        {coupons.map((c) => (
-                          <option key={c._id} value={c.code}>
-                            {c.code} (
-                            {c.discountType === "percent"
-                              ? `-${c.value}%`
-                              : `-${c.value}k`}
-                            )
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
                   <div className="text-[10px] text-gray-500 pt-1 flex items-center gap-1">
                     Preview Link:{" "}
                     <span className="font-mono text-blue-600 font-medium bg-blue-100 px-1 rounded">
                       {buildLinkFromForm(form) || "(trống)"}
                     </span>
                   </div>
-                </div>
-
-                {/* LINK LEGACY (Giữ nguyên, có thể ẩn nếu muốn) */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-gray-400 uppercase">
-                    Link legacy (Tùy chọn)
-                  </label>
-                  <input
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono text-gray-600"
-                    placeholder="/collections/pc"
-                    value={form.link || ""}
-                    onChange={(e) => setForm({ ...form, link: e.target.value })}
-                  />
                 </div>
 
                 <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-3">

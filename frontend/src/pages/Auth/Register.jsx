@@ -8,6 +8,7 @@ import {
   User,
   LoaderCircle,
   Check,
+  AlertCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,10 +50,80 @@ const getPasswordStrength = (password) => {
   return levels[score];
 };
 
+// Validation functions
+const validateFullName = (fullName) => {
+  if (!fullName.trim()) {
+    return "Vui lòng nhập họ tên";
+  }
+  if (fullName.trim().length < 2) {
+    return "Họ tên phải có ít nhất 2 ký tự";
+  }
+  if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(fullName.trim())) {
+    return "Họ tên chỉ được chứa chữ cái và khoảng trắng";
+  }
+  return "";
+};
+
+const validateEmail = (email) => {
+  if (!email.trim()) {
+    return "Vui lòng nhập email";
+  }
+
+  // Regex cải tiến: yêu cầu ít nhất 2 ký tự sau dấu chấm
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!emailRegex.test(email.trim())) {
+    return "Email không hợp lệ. Ví dụ: example@gmail.com";
+  }
+
+  return "";
+};
+
+const validatePassword = (password) => {
+  if (!password) {
+    return "Vui lòng nhập mật khẩu";
+  }
+  if (password.length < 8) {
+    return "Mật khẩu phải có ít nhất 8 ký tự";
+  }
+  if (!/(?=.*[a-z])/.test(password)) {
+    return "Mật khẩu phải có ít nhất 1 chữ thường";
+  }
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return "Mật khẩu phải có ít nhất 1 chữ hoa";
+  }
+  if (!/(?=.*\d)/.test(password)) {
+    return "Mật khẩu phải có ít nhất 1 chữ số";
+  }
+  return "";
+};
+
+const validateConfirmPassword = (password, confirmPassword) => {
+  if (!confirmPassword) {
+    return "Vui lòng xác nhận mật khẩu";
+  }
+  if (password !== confirmPassword) {
+    return "Mật khẩu không khớp";
+  }
+  return "";
+};
+
+const validateTerms = (agreeTerms) => {
+  if (!agreeTerms) {
+    return "Vui lòng đồng ý với điều khoản sử dụng";
+  }
+  return "";
+};
+
 export default function Register() {
   const [showPw, setShowPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [localError, setLocalError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    agreeTerms: "",
+  });
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -66,37 +137,60 @@ export default function Register() {
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
-    setLocalError(""); // Clear local error khi user nhập
+    const newValue = type === "checkbox" ? checked : value;
+
+    setForm((f) => ({ ...f, [name]: newValue }));
+
+    // Clear error khi user nhập
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case "fullName":
+        return validateFullName(value);
+      case "email":
+        return validateEmail(value);
+      case "password":
+        return validatePassword(value);
+      case "confirmPassword":
+        return validateConfirmPassword(form.password, value);
+      case "agreeTerms":
+        return validateTerms(value);
+      default:
+        return "";
+    }
   };
 
   const validateForm = () => {
-    if (!form.fullName.trim()) {
-      setLocalError("Vui lòng nhập họ tên");
-      return false;
-    }
-    if (!form.email.trim()) {
-      setLocalError("Vui lòng nhập email");
-      return false;
-    }
-    if (form.password.length < 8) {
-      setLocalError("Mật khẩu phải có ít nhất 8 ký tự");
-      return false;
-    }
-    if (form.password !== form.confirmPassword) {
-      setLocalError("Mật khẩu không khớp");
-      return false;
-    }
-    if (!form.agreeTerms) {
-      setLocalError("Vui lòng đồng ý với điều khoản sử dụng");
-      return false;
-    }
-    return true;
+    const errors = {
+      fullName: validateFullName(form.fullName),
+      email: validateEmail(form.email),
+      password: validatePassword(form.password),
+      confirmPassword: validateConfirmPassword(
+        form.password,
+        form.confirmPassword
+      ),
+      agreeTerms: validateTerms(form.agreeTerms),
+    };
+
+    setFieldErrors(errors);
+    return !Object.values(errors).some((error) => error !== "");
+  };
+
+  const onBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(
+      name,
+      name === "agreeTerms" ? form.agreeTerms : value
+    );
+    setFieldErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const onSubmit = (e) => {
     e.preventDefault();
-    setLocalError("");
 
     if (!validateForm()) {
       return;
@@ -115,7 +209,12 @@ export default function Register() {
   };
 
   const passwordStrength = getPasswordStrength(form.password);
-  const displayError = localError || error?.message;
+  const hasFieldErrors = Object.values(fieldErrors).some(
+    (error) => error !== ""
+  );
+  const displayError = hasFieldErrors
+    ? "Vui lòng kiểm tra lại thông tin đã nhập"
+    : error?.message;
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-gray-50 grid place-items-center px-4 py-8">
@@ -130,7 +229,7 @@ export default function Register() {
             Create Account
           </h1>
 
-          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
+          <form className="mt-8 space-y-5" onSubmit={onSubmit} noValidate>
             {/* Input Full Name */}
             <div>
               <label className="block text-sm font-medium mb-1.5 text-gray-600">
@@ -145,12 +244,31 @@ export default function Register() {
                   type="text"
                   value={form.fullName}
                   onChange={onChange}
+                  onBlur={onBlur}
                   required
                   disabled={isPending}
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className={`w-full rounded-lg border pl-10 pr-3 py-2.5 outline-none transition-colors focus:ring-1 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+                    fieldErrors.fullName
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  }`}
                   placeholder="Nguyễn Văn A"
                 />
               </div>
+              <AnimatePresence>
+                {fieldErrors.fullName && (
+                  <motion.p
+                    variants={errorVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="text-xs text-red-600 mt-1 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} />
+                    {fieldErrors.fullName}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Input Email */}
@@ -167,12 +285,31 @@ export default function Register() {
                   type="email"
                   value={form.email}
                   onChange={onChange}
+                  onBlur={onBlur}
                   required
                   disabled={isPending}
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className={`w-full rounded-lg border pl-10 pr-3 py-2.5 outline-none transition-colors focus:ring-1 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+                    fieldErrors.email
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  }`}
                   placeholder="you@example.com"
                 />
               </div>
+              <AnimatePresence>
+                {fieldErrors.email && (
+                  <motion.p
+                    variants={errorVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="text-xs text-red-600 mt-1 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} />
+                    {fieldErrors.email}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Input Password */}
@@ -189,9 +326,14 @@ export default function Register() {
                   type={showPw ? "text" : "password"}
                   value={form.password}
                   onChange={onChange}
+                  onBlur={onBlur}
                   required
                   disabled={isPending}
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className={`w-full rounded-lg border pl-10 pr-10 py-2.5 outline-none transition-colors focus:ring-1 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+                    fieldErrors.password
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  }`}
                   placeholder="••••••••"
                 />
                 <button
@@ -227,6 +369,20 @@ export default function Register() {
                   )}
                 </div>
               )}
+              <AnimatePresence>
+                {fieldErrors.password && (
+                  <motion.p
+                    variants={errorVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="text-xs text-red-600 mt-1 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} />
+                    {fieldErrors.password}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Input Confirm Password */}
@@ -243,9 +399,14 @@ export default function Register() {
                   type={showConfirmPw ? "text" : "password"}
                   value={form.confirmPassword}
                   onChange={onChange}
+                  onBlur={onBlur}
                   required
                   disabled={isPending}
-                  className="w-full rounded-lg border border-gray-300 pl-10 pr-10 py-2.5 outline-none transition-colors focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className={`w-full rounded-lg border pl-10 pr-10 py-2.5 outline-none transition-colors focus:ring-1 disabled:bg-gray-50 disabled:cursor-not-allowed ${
+                    fieldErrors.confirmPassword
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  }`}
                   placeholder="••••••••"
                 />
                 <button
@@ -264,25 +425,58 @@ export default function Register() {
                     <Check size={14} /> Mật khẩu khớp
                   </p>
                 )}
+              <AnimatePresence>
+                {fieldErrors.confirmPassword && (
+                  <motion.p
+                    variants={errorVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="text-xs text-red-600 mt-1 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} />
+                    {fieldErrors.confirmPassword}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Terms Checkbox */}
-            <label className="inline-flex items-center gap-2 select-none">
-              <input
-                type="checkbox"
-                name="agreeTerms"
-                checked={form.agreeTerms}
-                onChange={onChange}
-                disabled={isPending}
-                className="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
-              />
-              <span className="text-sm text-gray-600">
-                I agree with{" "}
-                <a href="#" className="text-indigo-600 hover:underline">
-                  Terms of Use
-                </a>
-              </span>
-            </label>
+            <div>
+              <label className="inline-flex items-center gap-2 select-none">
+                <input
+                  type="checkbox"
+                  name="agreeTerms"
+                  checked={form.agreeTerms}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  disabled={isPending}
+                  className={`size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed ${
+                    fieldErrors.agreeTerms ? "border-red-500" : ""
+                  }`}
+                />
+                <span className="text-sm text-gray-600">
+                  I agree with{" "}
+                  <a href="#" className="text-indigo-600 hover:underline">
+                    Terms of Use
+                  </a>
+                </span>
+              </label>
+              <AnimatePresence>
+                {fieldErrors.agreeTerms && (
+                  <motion.p
+                    variants={errorVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="text-xs text-red-600 mt-1 flex items-center gap-1"
+                  >
+                    <AlertCircle size={12} />
+                    {fieldErrors.agreeTerms}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Nút Submit */}
             <motion.button
@@ -315,7 +509,7 @@ export default function Register() {
               </AnimatePresence>
             </motion.button>
 
-            {/* Hiển thị lỗi */}
+            {/* Hiển thị lỗi tổng */}
             <AnimatePresence>
               {displayError && (
                 <motion.div
@@ -323,7 +517,7 @@ export default function Register() {
                   initial="hidden"
                   animate="visible"
                   exit="hidden"
-                  className="text-sm text-red-600 text-center"
+                  className="text-sm text-red-600 text-center bg-red-50 py-2 px-3 rounded-lg border border-red-200"
                 >
                   {displayError}
                 </motion.div>

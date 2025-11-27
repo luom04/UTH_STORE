@@ -74,12 +74,28 @@ const OrderSchema = new mongoose.Schema(
     shippingAddress: AddressSchema,
     note: String,
 
-    paymentMethod: { type: String, enum: ["cod", "online"], default: "cod" },
+    paymentMethod: {
+      type: String,
+      enum: ["cod", "vnpay", "momo"],
+      default: "cod",
+    },
     paymentStatus: {
       type: String,
       enum: ["unpaid", "paid", "refunded", "pending"],
       default: "unpaid",
       index: true,
+    },
+    transactionId: {
+      type: String,
+      default: null,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+    paymentDetails: {
+      type: Object,
+      default: null,
     },
     status: {
       type: String,

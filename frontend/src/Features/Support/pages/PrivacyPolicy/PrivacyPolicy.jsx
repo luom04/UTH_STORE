@@ -136,7 +136,7 @@ const PrivacyPolicy = () => {
               href="mailto:support@yourcompany.com"
               className="text-blue-600 hover:underline"
             >
-              support@yourcompany.com
+              uthstore@gmail.com
             </a>
             <br />
             Điện thoại:{" "}

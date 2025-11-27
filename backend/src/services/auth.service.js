@@ -152,14 +152,17 @@ export const AuthService = {
     // 1. Tìm user
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+      throw new ApiError(
+        httpStatus.UNAUTHORIZED,
+        "Thông tin đăng nhập không hợp lệ"
+      );
     }
 
     // 2. ✅ KIỂM TRA TẠI KHOẢN BỊ KHÓA (ưu tiên cao nhất)
     if (!user.isActive) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        "Your account has been deactivated. Please contact support."
+        "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ."
       );
     }
 
@@ -167,21 +170,24 @@ export const AuthService = {
     if (!user.password) {
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "This account uses Google login. Please sign in with Google."
+        "Tài khoản này sử dụng thông tin đăng nhập Google. Vui lòng đăng nhập bằng Google."
       );
     }
 
     // 4. So sánh password
     const ok = await user.comparePassword(password);
     if (!ok) {
-      throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
+      throw new ApiError(
+        httpStatus.UNAUTHORIZED,
+        "Thông tin đăng nhập không hợp lệ"
+      );
     }
 
     // 5. ✅ KIỂM TRA EMAIL VERIFICATION (chỉ với customer)
     if (user.role === ROLES.CUSTOMER && !user.isEmailVerified) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        "Please verify your email before logging in. Check your inbox for the verification link."
+        "Vui lòng xác minh email của bạn trước khi đăng nhập. Kiểm tra hộp thư đến của bạn để biết liên kết xác minh"
       );
     }
 

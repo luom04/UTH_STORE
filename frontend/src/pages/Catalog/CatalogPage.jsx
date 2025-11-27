@@ -1,11 +1,13 @@
 // src/pages/Catalog/CatalogPage.jsx
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import ProductCard from "../../components/Product/ProductCard.jsx";
+import ProductCard from "../../components/product/ProductCard.jsx";
 import CategoriesSection from "../../components/Categories/CategoriesSection.jsx";
 import { useCatalogProducts } from "../../hooks/useProductsPublic.js";
 import { useCategoryBySlug } from "../../hooks/useCategories.js";
 import Button from "../../components/Button/Button.jsx";
+import { Loader2 } from "lucide-react";
+
 const PAGE_SIZE = 20;
 
 export default function CatalogPage() {
@@ -16,6 +18,9 @@ export default function CatalogPage() {
   const sort = sp.get("sort") || "-updatedAt";
 
   const categorySlug = decodeURIComponent(slug || "").toLowerCase();
+
+  // ✅ NEW: Local loading state
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const { category, isLoading: isLoadingCategory } =
     useCategoryBySlug(categorySlug);
@@ -57,18 +62,24 @@ export default function CatalogPage() {
 
   const canLoadMore = (meta?.limit ?? limit) <= list.length;
 
-  const onLoadMore = () => {
+  // ✅ NEW: Handle load more with delay
+  const onLoadMore = async () => {
+    setIsLoadingMore(true);
+
+    // Delay 500ms để hiển thị spinner
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     const next = new URLSearchParams(sp);
     next.set("limit", String(limit + PAGE_SIZE));
     setSp(next, { replace: true });
+
+    setIsLoadingMore(false);
   };
 
   const categoryDisplayName = category?.name || categorySlug;
 
   return (
     <div className="overflow-x-hidden">
-      {" "}
-      {/* ⬅️ chặn scroll ngang toàn trang */}
       {/* Banner (full-bleed, nằm ngoài container để full screen) */}
       <div className="mb-6">
         {isLoadingCategory ? (
@@ -127,6 +138,7 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
+
       {/* Content */}
       <div className="max-w-6xl mx-auto px-3">
         {isLoading ? (
@@ -161,34 +173,12 @@ export default function CatalogPage() {
                 <Button
                   variant="secondary"
                   onClick={onLoadMore}
-                  disabled={isFetching} // 1. Vô hiệu hóa nút khi đang tải
-                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-6 py-2.5 font-medium hover:bg-gray-50 transition disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer" // 2. Thêm class để căn giữa spinner
+                  disabled={isLoadingMore || isFetching}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:text-red-600 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  {/* 3. Dùng isFetching để chọn hiển thị */}
-                  {isFetching ? (
+                  {isLoadingMore || isFetching ? (
                     <>
-                      {/* Đây là SVG spinner */}
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Đang tải...
+                      <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...
                     </>
                   ) : (
                     "Xem thêm sản phẩm"
@@ -199,6 +189,7 @@ export default function CatalogPage() {
           </>
         )}
       </div>
+
       {/* Categories Section */}
       <div className="max-w-6xl mx-auto px-3 mt-8">
         <CategoriesSection />

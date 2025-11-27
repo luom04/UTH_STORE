@@ -2,21 +2,28 @@
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useChatHistory } from "../../hooks/useChat";
-import { MessageCircle, X, Send, Minus } from "lucide-react";
+import {
+  MessageCircle,
+  X,
+  Send,
+  Minus,
+  Bot, // ✅ Icon Robot
+} from "lucide-react";
 
 const RAW_API = import.meta.env.VITE_API_BASE;
 const SOCKET_URL = RAW_API.replace(/\/api\/?$/, "");
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showLabel, setShowLabel] = useState(true); // ✅ State điều khiển hiển thị nhãn "Bạn cần hỗ trợ gì?"
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [socket, setSocket] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0); // ✅ SỐ TIN CHƯA ĐỌC
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const messagesEndRef = useRef(null);
 
-  // 1. Session ID
+  // --- 1. LOGIC SOCKET & HISTORY (GIỮ NGUYÊN) ---
   const getSessionId = () => {
     let id = localStorage.getItem("chat_session_id");
     if (!id) {
@@ -26,15 +33,13 @@ export default function ChatWidget() {
     return id;
   };
   const sessionId = getSessionId();
-  console.log("[ChatWidget] sessionId =", sessionId);
 
-  // 2. GỌI HOOK: Lấy lịch sử chat khi mở khung
   const { data: historyMessages, isLoading } = useChatHistory(
     sessionId,
     isOpen
   );
 
-  // 3. Sync dữ liệu từ Hook vào State (chỉ khi lần đầu mở, messages đang rỗng)
+  // Sync lịch sử chat
   useEffect(() => {
     if (historyMessages && historyMessages.length > 0) {
       setMessages((prev) => {
@@ -44,64 +49,40 @@ export default function ChatWidget() {
     }
   }, [historyMessages]);
 
-  // 4. KẾT NỐI SOCKET MỘT LẦN (kể cả khi widget đang đóng)
+  // Kết nối Socket
   useEffect(() => {
-    console.log("[ChatWidget] connecting socket to", SOCKET_URL);
-
     const newSocket = io(SOCKET_URL, {
       withCredentials: true,
       transports: ["websocket"],
     });
-
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
-      console.log("✅ [Socket] Customer connected:", newSocket.id);
       newSocket.emit("join_chat", sessionId);
     });
 
-    newSocket.on("connect_error", (err) => {
-      console.error("❌ [Socket] connect_error:", err.message);
-    });
-
-    newSocket.on("error", (msg) => {
-      console.error("❌ [Socket] error event:", msg);
-    });
-
-    // ✅ Nhận tin nhắn realtime từ server (AI / Admin)
     newSocket.on("server_send_message", (data) => {
-      console.log("📥 [Socket] server_send_message:", data);
-
       setMessages((prev) => [...prev, data]);
-
-      // Nếu widget đang đóng và tin không phải do chính user gửi → tăng unreadCount
+      // Nếu widget đóng & tin nhắn từ server -> Tăng unread & Hiện lại nhãn
       if (!isOpen && data.sender !== "user") {
         setUnreadCount((prev) => prev + 1);
+        setShowLabel(true);
       }
     });
 
-    return () => {
-      console.log("[ChatWidget] cleanup – disconnect socket");
-      newSocket.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]); // KHÔNG phụ thuộc isOpen nữa
+    return () => newSocket.disconnect();
+  }, [sessionId, isOpen]);
 
-  // 5. Auto scroll khi messages thay đổi và widget đang mở
+  // Auto scroll
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
 
-  // 6. Gửi tin nhắn từ Customer
+  // Gửi tin nhắn
   const sendMessage = () => {
-    if (!input.trim() || !socket) {
-      console.warn(
-        "[ChatWidget] sendMessage blocked: empty input or no socket"
-      );
-      return;
-    }
+    if (!input.trim() || !socket) return;
 
     const msgData = {
       sessionId,
@@ -110,91 +91,125 @@ export default function ChatWidget() {
       timestamp: new Date().toISOString(),
     };
 
-    // Hiển thị ngay trên UI (optimistic)
     setMessages((prev) => [...prev, msgData]);
-
-    // Gửi lên server
     socket.emit("client_send_message", {
       sessionId,
       content: input.trim(),
     });
-
     setInput("");
   };
 
-  // 7. Mở widget → reset unreadCount
+  // Mở chat
   const handleOpen = () => {
     setIsOpen(true);
-    setUnreadCount(0); // ✅ đã xem tất cả
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
+    setShowLabel(false); // Ẩn nhãn khi mở chat
+    setUnreadCount(0);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 font-sans">
-      {/* 🟢 NÚT BONG BÓNG CHAT (Hiện khi đóng chat) */}
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans">
+      {/* 🟢 PHẦN 1: NHÃN DÁN "Bạn cần hỗ trợ gì?" (Giống hình mẫu) */}
+      {!isOpen && showLabel && (
+        <div className="absolute bottom-5 right-[70px] z-50 animate-in slide-in-from-right-5 duration-500">
+          <div
+            className="relative flex items-center gap-3 rounded-full bg-gradient-to-r from-red-500 to-rose-600 px-4 py-3 text-white shadow-xl shadow-red-500/20 cursor-pointer hover:scale-105 transition-transform"
+            onClick={handleOpen}
+          >
+            {/* Avatar Robot nhỏ */}
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+              <Bot size={18} className="text-white" />
+            </div>
+
+            {/* Text */}
+            <span className="whitespace-nowrap font-bold text-sm pr-1">
+              Bạn cần hỗ trợ gì?
+            </span>
+
+            {/* Mũi tên tam giác chỉ vào nút chat */}
+            <div className="absolute -right-2 top-1/2 h-0 w-0 -translate-y-1/2 border-y-[8px] border-l-[10px] border-y-transparent border-l-rose-600"></div>
+
+            {/* 🔴 Nút X đóng nhãn (Màu xám giống hình) */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Chặn click lan ra ngoài
+                setShowLabel(false);
+              }}
+              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-500 text-white shadow-md hover:bg-gray-600 transition-colors border-2 border-white"
+              title="Đóng gợi ý"
+            >
+              <X size={10} strokeWidth={3} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🟢 PHẦN 2: NÚT CHAT TRÒN (Launcher Robot) */}
       {!isOpen && (
         <button
           onClick={handleOpen}
-          className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl transition-all hover:scale-110 hover:bg-blue-700 active:scale-95"
+          className="group relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-red-600 to-rose-500 text-white shadow-lg shadow-rose-500/40 transition-all hover:scale-110 active:scale-95 ring-4 ring-white/50"
         >
-          <MessageCircle size={28} />
+          {/* Hiệu ứng sóng lan tỏa */}
+          <span className="absolute inset-0 -z-10 rounded-full bg-rose-500 opacity-0 group-hover:animate-ping"></span>
 
-          {/* Tooltip nhỏ */}
-          <span className="absolute right-full mr-3 hidden whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:block group-hover:opacity-100">
-            Chat hỗ trợ
-          </span>
+          {/* Icon Robot Chính */}
+          <div className="relative">
+            <Bot size={34} strokeWidth={2} />
+            {/* Icon hội thoại nhỏ trên đầu robot */}
+            <div className="absolute -top-1 -right-2 bg-white text-rose-600 rounded-full p-[2px] shadow-sm">
+              <MessageCircle size={10} fill="currentColor" />
+            </div>
+          </div>
 
-          {/* ✅ BADGE HIỂN THỊ SỐ TIN NHẮN CHƯA ĐỌC */}
+          {/* Badge số tin nhắn chưa đọc */}
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white ring-2 ring-white">
+            <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white ring-2 ring-white animate-bounce">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </button>
       )}
 
-      {/* 🟢 CỬA SỔ CHAT */}
+      {/* 🟢 PHẦN 3: CỬA SỔ CHAT (Theme Đỏ/Hồng) */}
       {isOpen && (
-        <div className="flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300">
-          {/* Header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-500 p-4 text-white shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
-                <span className="text-xl">🤖</span>
+        <div className="flex h-[550px] w-[380px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl animate-in slide-in-from-bottom-10 fade-in duration-300 ring-1 ring-gray-100">
+          {/* Header Gradient */}
+          <div className="relative flex items-center justify-between bg-gradient-to-r from-red-600 to-rose-600 p-4 text-white shadow-md">
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm border border-white/20">
+                <Bot size={24} />
               </div>
               <div>
-                <h3 className="font-bold text-sm">Trợ lý UTH Store</h3>
-                <div className="flex items-center gap-1.5 text-[11px] opacity-90">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-green-400"></span>
-                  Sẵn sàng hỗ trợ
+                <h3 className="font-bold text-base leading-tight">
+                  Trợ lý UTH
+                </h3>
+                <div className="flex items-center gap-1.5 text-xs text-rose-100 mt-0.5">
+                  <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+                  Thường trả lời ngay
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleClose}
-                className="rounded-full p-1.5 hover:bg-white/20 transition-colors"
-              >
-                <Minus size={18} />
-              </button>
-            </div>
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="relative z-10 rounded-full p-2 text-rose-100 hover:bg-white/20 hover:text-white transition-all"
+            >
+              <Minus size={20} />
+            </button>
           </div>
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto bg-gray-50 p-4 custom-scrollbar">
             {isLoading && messages.length === 0 && (
-              <div className="mt-4 text-center text-xs text-gray-400">
+              <div className="mt-10 text-center text-xs text-gray-400">
                 Đang tải tin nhắn...
               </div>
             )}
 
             {!isLoading && messages.length === 0 && (
-              <div className="mt-8 flex flex-col items-center gap-2 text-center text-gray-400">
-                <MessageCircle size={40} className="opacity-20" />
-                <p className="text-sm">Xin chào! Bạn cần giúp gì không?</p>
+              <div className="mt-10 flex flex-col items-center gap-2 text-center text-gray-400 opacity-60">
+                <Bot size={48} />
+                <p className="text-sm">Xin chào! Tôi có thể giúp gì cho bạn?</p>
               </div>
             )}
 
@@ -202,7 +217,6 @@ export default function ChatWidget() {
               {messages.map((msg, idx) => {
                 const isUser = msg.sender === "user";
                 const isAdmin = msg.sender === "admin";
-
                 return (
                   <div
                     key={idx}
@@ -210,40 +224,39 @@ export default function ChatWidget() {
                       isUser ? "justify-end" : "justify-start"
                     }`}
                   >
+                    {!isUser && (
+                      <div className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 border border-rose-200">
+                        {isAdmin ? "Ad" : <Bot size={16} />}
+                      </div>
+                    )}
                     <div
-                      className={`flex max-w-[80%] flex-col ${
+                      className={`max-w-[80%] ${
                         isUser ? "items-end" : "items-start"
                       }`}
                     >
-                      {/* Tên người gửi */}
                       {!isUser && (
-                        <span className="mb-1 ml-1 text-[10px] font-bold text-gray-500">
-                          {isAdmin ? "Hỗ trợ viên" : "AI Bot"}
+                        <span className="mb-1 ml-1 text-[10px] text-gray-400 font-medium">
+                          {isAdmin ? "Admin" : "AI Support"}
                         </span>
                       )}
-
-                      {/* Bong bóng tin nhắn */}
                       <div
-                        className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                        className={`px-4 py-2.5 text-sm shadow-sm ${
                           isUser
-                            ? "rounded-br-sm bg-blue-600 text-white"
-                            : isAdmin
-                            ? "rounded-bl-sm bg-orange-100 text-gray-800 border border-orange-200"
-                            : "rounded-bl-sm bg-white text-gray-700 border border-gray-100"
+                            ? "rounded-2xl rounded-tr-none bg-gradient-to-br from-red-500 to-rose-600 text-white"
+                            : "rounded-2xl rounded-tl-none bg-white border border-gray-100 text-gray-800"
                         }`}
                       >
                         {msg.content}
                       </div>
-
-                      {/* Thời gian */}
-                      <span className="mt-1 mr-1 text-[10px] text-gray-400">
+                      <span
+                        className={`mt-1 text-[10px] text-gray-400 block ${
+                          isUser ? "text-right pr-1" : "pl-1"
+                        }`}
+                      >
                         {msg.timestamp
                           ? new Date(msg.timestamp).toLocaleTimeString(
                               "vi-VN",
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
+                              { hour: "2-digit", minute: "2-digit" }
                             )
                           : ""}
                       </span>
@@ -257,10 +270,10 @@ export default function ChatWidget() {
 
           {/* Footer Input */}
           <div className="border-t bg-white p-3">
-            <div className="relative flex items-center rounded-full bg-gray-100 px-1 border border-transparent focus-within:border-blue-500 focus-within:bg-white transition-all">
+            <div className="relative flex items-center rounded-full bg-gray-100 px-1 border border-transparent focus-within:border-rose-400 focus-within:bg-white transition-all">
               <input
-                className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none"
-                placeholder="Nhập câu hỏi..."
+                className="flex-1 bg-transparent px-4 py-3 text-sm focus:outline-none placeholder:text-gray-400"
+                placeholder="Nhập tin nhắn..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -268,13 +281,10 @@ export default function ChatWidget() {
               <button
                 onClick={sendMessage}
                 disabled={!input.trim()}
-                className="mr-1 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-transform hover:scale-105 active:scale-95 disabled:bg-gray-300 disabled:scale-100"
+                className="mr-1 flex h-9 w-9 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition-all hover:bg-rose-700 hover:scale-105 active:scale-95 disabled:bg-gray-300 disabled:scale-100"
               >
                 <Send size={16} className={input.trim() ? "ml-0.5" : ""} />
               </button>
-            </div>
-            <div className="mt-1 text-center text-[10px] text-gray-400">
-              Powered by UTH AI &copy; 2025
             </div>
           </div>
         </div>

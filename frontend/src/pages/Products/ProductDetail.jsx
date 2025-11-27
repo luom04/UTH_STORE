@@ -8,7 +8,8 @@ import {
   ChevronUp,
   CheckCircle2,
   MessageCircle,
-  Gift, // ✅ [ADDED] Import icon Gift
+  Gift,
+  MapPin,
 } from "lucide-react";
 import Button from "../../components/Button/Button.jsx";
 import { useCart } from "../../hooks/useCart"; // Hook giỏ hàng
@@ -252,6 +253,26 @@ function RowBestSellers({ title, href, category, limit = 10 }) {
     />
   );
 }
+
+/* ======================= SHOWROOM DATA ======================= */
+const SHOWROOMS = [
+  {
+    region: "Showroom HCM",
+    items: [
+      { address: "78-80-82 Hoàng Hoa Thám, Phường Bảy Hiền, TP.HCM" },
+      { address: "905 Kha Vạn Cân, Phường Linh Tây, TP.HCM" },
+      { address: "1081-1083 Trần Hưng Đạo, Phường An Đông, TP.HCM" },
+      {
+        address: "63 Nguyễn Cửu Vân, Phường Gia Định, TP.HCM",
+        isNew: true, // ✅ Đánh dấu showroom mới
+      },
+    ],
+  },
+  {
+    region: "Showroom HN",
+    items: [{ address: "162-164 Thái Hà, Phường Đống Đa, Hà Nội" }],
+  },
+];
 
 /* ======================= MAIN: PRODUCT DETAIL PAGE ======================= */
 
@@ -605,6 +626,55 @@ export default function ProductDetail() {
               </li>
             </ul>
           </div>
+          {/* ======================= SHOWROOM LOCATION ======================= */}
+          <div className="mt-5 border-t pt-4">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <MapPin className="text-red-600" size={20} />
+              Hệ thống Showroom
+            </h3>
+
+            <div className="space-y-4">
+              {SHOWROOMS.map((area, idx) => (
+                <div key={idx}>
+                  <h4 className="font-bold text-sm underline mb-2 text-gray-800">
+                    {area.region}
+                  </h4>
+                  <ul className="space-y-2">
+                    {area.items.map((item, i) => {
+                      // Tạo link Google Maps
+                      const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                        item.address
+                      )}`;
+
+                      return (
+                        <li key={i} className="text-sm relative">
+                          <a
+                            href={mapLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-2 text-gray-700 hover:text-blue-600 transition-colors group"
+                          >
+                            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0 group-hover:bg-blue-600 transition-colors"></span>
+                            <span className="flex-1 leading-snug">
+                              {item.address}
+                            </span>
+
+                            {/* Badge NEW */}
+                            {item.isNew && (
+                              <span className="animate-pulse ml-1 inline-flex items-center rounded bg-pink-100 px-1.5 py-0.5 text-[10px] font-bold text-pink-600 uppercase">
+                                New ✨
+                              </span>
+                            )}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* ======================= END SHOWROOM ======================= */}
         </div>
       </div>
 

@@ -152,30 +152,15 @@ export default function OnsiteSupport() {
       {/* CTA + thông tin liên hệ */}
       <SectionTitle>YÊU CẦU DỊCH VỤ</SectionTitle>
       <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <Link
-          to="#"
+        <a
+          href="https://forms.gle/YbK1QwKAKBQ1X4X68"
           className="inline-flex items-center justify-center rounded-xl bg-rose-500 px-5 py-3 text-white shadow hover:bg-rose-600"
         >
           Click tại đây để đăng ký
-        </Link>
+        </a>
         <span className="text-sm text-gray-600">
           (Chúng tôi sẽ gọi xác nhận trong vòng 12 giờ làm việc)
         </span>
-      </div>
-
-      <SectionTitle>THÔNG TIN LIÊN HỆ</SectionTitle>
-      <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-5 text-sm text-gray-800">
-        <p>
-          <b>Số điện thoại:</b> 0947.266.276
-        </p>
-        <p>
-          <b>Địa chỉ ALD Service:</b> 34/9 Đ. Phùng Văn Cung, P. Cầu Kiệu, Q.
-          Phú Nhuận, TP.HCM
-        </p>
-        <p className="mt-2 text-gray-600">
-          Thời gian làm việc: 08:30 – 18:00 (Thứ 2 – Chủ nhật). Phạm vi hỗ trợ
-          tiêu chuẩn: &lt; 30km.
-        </p>
       </div>
     </div>
   );

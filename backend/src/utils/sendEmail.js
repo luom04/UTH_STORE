@@ -135,13 +135,22 @@ export async function sendOrderConfirmationEmail(order, user) {
     couponCode,
     discountAmount = 0,
     studentDiscountAmount = 0,
+    paymentStatus, // ✅ thêm
   } = plainOrder;
+
+  // ✅ Xác định đây có phải mail "ĐÃ THANH TOÁN VNPay" hay không
+  const isVNPayPaid =
+    String(paymentMethod).toLowerCase() === "vnpay" &&
+    String(paymentStatus).toLowerCase() === "paid";
 
   // ✅ Tổng tiền hàng trước HSSV (giữ như bạn đang làm)
   const itemsTotalOriginal =
     Number(itemsTotal) + Number(studentDiscountAmount || 0);
 
-  const subject = `[UTH Store] Đơn hàng ${orderNumber} đã được đặt thành công`;
+  // ✅ SUBJECT: khác nhau giữa COD & VNPay đã thanh toán
+  const subject = isVNPayPaid
+    ? `[UTH Store] Đơn hàng ${orderNumber} đã thanh toán thành công qua VNPay`
+    : `[UTH Store] Đơn hàng ${orderNumber} đã được đặt thành công`;
 
   // ✅ FIX Ở ĐÂY: Tổng phụ phải là GIÁ TRƯỚC HSSV
   const itemDetailsHtml = items
@@ -197,6 +206,15 @@ export async function sendOrderConfirmationEmail(order, user) {
         </tr>`
       : "";
 
+  // ✅ Tuỳ theo isVNPayPaid mà đổi text tiêu đề
+  const headerTitle = isVNPayPaid
+    ? "💳 Thanh toán VNPay thành công!"
+    : "🛒 Đặt hàng thành công!";
+
+  const introLine = isVNPayPaid
+    ? `Đơn hàng của bạn đã được thanh toán thành công qua <strong>VNPay</strong>.`
+    : `Đơn hàng của bạn đã được tạo thành công tại <strong>UTH Store</strong>.`;
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -215,10 +233,10 @@ export async function sendOrderConfirmationEmail(order, user) {
     </head>
     <body>
       <div class="container">
-        <div class="header"><h1>🛒 Đặt hàng thành công!</h1></div>
+        <div class="header"><h1>${headerTitle}</h1></div>
         <div class="content">
           <h2>Xin chào ${user.name || user.email},</h2>
-          <p>Cảm ơn bạn đã mua hàng tại <strong>UTH Store</strong>.</p>
+          <p>${introLine}</p>
           <h3 style="color: #16A34A;">Mã đơn hàng: ${orderNumber}</h3>
 
           <h3 style="margin-top: 30px;">Chi tiết sản phẩm:</h3>

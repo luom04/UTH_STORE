@@ -132,7 +132,7 @@ export const ROUTES = [
     element: Login,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
     meta: { guestOnly: true },
   },
@@ -141,7 +141,7 @@ export const ROUTES = [
     element: Register,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
     meta: { guestOnly: true },
   },
@@ -158,7 +158,7 @@ export const ROUTES = [
     element: ForgotPassword,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
     meta: { guestOnly: true },
   },
@@ -167,7 +167,7 @@ export const ROUTES = [
     element: ResetPassword,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
     meta: { guestOnly: true },
   },
@@ -176,7 +176,7 @@ export const ROUTES = [
     element: VerifyEmail,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
     meta: { guestOnly: true },
   },
@@ -185,7 +185,7 @@ export const ROUTES = [
     element: OauthSuccess,
     layout: {
       type: "public",
-      props: { noBanner: true, noFooter: true, noHeader: true },
+      props: { noBanner: true, noFooter: true, noHeader: true, noBanner: true },
     },
   },
   // ===== customer (đã đăng nhập + role CUSTOMER) =====

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Toaster } from "react-hot-toast";
 import Header from "../../components/Header/Header.jsx";
+import StickySideBanner from "../../components/Banner/StickySideBanners.jsx";
 import Footer from "../../components/Footer/Footer.jsx";
 import Backdrop from "../../components/Backdrop/Backdrop.jsx";
 import SidebarNav_Backdrop from "../../components/NavBar/SidebarNav_Backdrop.jsx";
@@ -11,6 +12,7 @@ export default function Layout({
   children,
   noHeader = false,
   noFooter = false,
+  noBanner = false,
 }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
@@ -43,7 +45,12 @@ export default function Layout({
 
       {/* 3. THÊM COMPONENT Toaster */}
       <Toaster position="top-center" />
-      <ChatWidget />
+      {!noBanner && (
+        <>
+          <ChatWidget />
+          <StickySideBanner />
+        </>
+      )}
     </div>
   );
 }

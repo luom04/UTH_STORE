@@ -16,9 +16,8 @@ export class OrderService {
   /**
    * Tạo đơn hàng mới từ giỏ hàng
    */
-  /**
-   * Tạo đơn hàng mới từ giỏ hàng
-   */
+
+  //src/services/order.service.js
   static async createOrder(userId, orderData) {
     const {
       shippingAddress,
@@ -29,7 +28,10 @@ export class OrderService {
 
     const paymentMethod = rawPaymentMethod.toLowerCase();
 
-    // 1. Lấy giỏ hàng
+    console.log("=== [createOrder] ===");
+    console.log("userId:", userId);
+    console.log("paymentMethod:", paymentMethod);
+
     const cart = await Cart.findOne({ user: userId }).populate([
       {
         path: "items.product",
@@ -39,10 +41,16 @@ export class OrderService {
       { path: "user", select: "name email phone" },
     ]);
 
+    console.log(
+      "Cart found?",
+      !!cart,
+      "items length:",
+      cart?.items?.length || 0
+    );
+
     if (!cart || !cart.items.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Giỏ hàng trống");
     }
-
     const user = cart.user;
 
     // ✅ Check user có phải sinh viên không
@@ -295,22 +303,26 @@ export class OrderService {
     //  Gửi email
     if (user && user.email) {
       try {
-        await sendOrderConfirmationEmail(
-          {
-            orderNumber: order.orderNumber,
-            grandTotal: order.grandTotal,
-            paymentMethod: order.paymentMethod,
-            items: order.items,
-            itemsTotal: order.itemsTotal, // sau HSSV
-            shippingFee: order.shippingFee,
+        // ✅ CHỈ GỬI MAIL NGAY CHO COD
+        if (paymentMethod === "cod") {
+          await sendOrderConfirmationEmail(
+            {
+              orderNumber: order.orderNumber,
+              grandTotal: order.grandTotal,
+              paymentMethod: order.paymentMethod,
+              paymentStatus: order.paymentStatus,
+              items: order.items,
+              itemsTotal: order.itemsTotal, // sau HSSV
+              shippingFee: order.shippingFee,
 
-            // ✅ thêm mới
-            couponCode: order.couponCode,
-            discountAmount: order.discountAmount,
-            studentDiscountAmount: order.studentDiscountAmount,
-          },
-          { email: user.email, name: user.name }
-        );
+              // ✅ thêm mới
+              couponCode: order.couponCode,
+              discountAmount: order.discountAmount,
+              studentDiscountAmount: order.studentDiscountAmount,
+            },
+            { email: user.email, name: user.name }
+          );
+        }
       } catch (err) {
         console.error("Lỗi gửi mail:", err.message);
       }

@@ -16,7 +16,8 @@ import customerRoutes from "./customer.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import bannerRoutes from "./banner.routes.js";
 import couponRoutes from "./coupon.routes.js";
-import chatRoutes from "./chat.route.js";
+import chatRoutes from "./chat.routes.js";
+import paymentRoutes from "./payment.routes.js";
 //route admin
 import staffRoutes from "./staff.routes.js";
 
@@ -33,6 +34,7 @@ router.use("/cart", cartRoutes);
 router.use("/orders", orderRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/chats", chatRoutes);
+router.use("/payment", paymentRoutes);
 
 //admin
 router.use("/staffs", staffRoutes);

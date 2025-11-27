@@ -97,12 +97,14 @@ export async function apiListProductsPublic({
   category = "",
   brand = "",
   price,
+  status,
   fields,
 } = {}) {
   const params = { page, limit, sort };
   if (q) params.q = q;
   if (category) params.category = category;
   if (brand) params.brand = brand;
+  if (status) params.status = status;
   if (price?.min != null) params["price[gte]"] = price.min;
   if (price?.max != null) params["price[lte]"] = price.max;
 
