@@ -164,7 +164,6 @@ router.post(
 // PUBLIC ROUTES
 // ========================================
 
-// ✅ NEW: phải đặt TRƯỚC "/:id" để không bị bắt nhầm là id
 router.get("/search", suggestProducts);
 
 // List (public) + filter/sort/paginate/fields via query

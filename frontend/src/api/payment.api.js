@@ -10,6 +10,13 @@ export const paymentApi = {
     );
     return response.data;
   },
+  // ✅ Retry thanh toán VNPay cho đơn đã tạo
+  retryVNPayPayment: async (orderId) => {
+    const response = await axiosInstance.post(
+      `/payment/vnpay/retry/${orderId}`
+    );
+    return response.data;
+  },
 
   // ✅ Tạo thanh toán MoMo
   createMoMoPayment: async (paymentData) => {

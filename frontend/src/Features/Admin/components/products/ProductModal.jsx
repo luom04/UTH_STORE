@@ -86,6 +86,8 @@ export default function ProductModal({
     studentDiscountAmount: 0,
   });
 
+  const readOnly = !canEditAll;
+
   // Helper rounding
   const ceilTo10k = (n) => Math.ceil((Number(n) || 0) / 10000) * 10000;
 
@@ -194,6 +196,8 @@ export default function ProductModal({
   // Save Handler
   const save = (e) => {
     e.preventDefault();
+    if (!canEditAll) return; // an toàn, staff không được submit
+
     if (!form.title?.trim()) return alert("⚠️ Vui lòng nhập Tên sản phẩm.");
     if (!form.category?.trim()) return alert("⚠️ Vui lòng chọn Danh mục.");
 
@@ -229,11 +233,12 @@ export default function ProductModal({
       studentDiscountAmount: Number(form.studentDiscountAmount) || 0,
     };
 
-    onSave(payload);
+    onSave && onSave(payload);
   };
 
   // Image handlers
   const addMainUrl = () => {
+    if (readOnly) return;
     const url = mainUrlInput.trim();
     if (!url) return;
     setForm((f) => ({
@@ -246,6 +251,7 @@ export default function ProductModal({
   };
 
   const handleMainFile = async (file) => {
+    if (readOnly) return;
     if (!file) return;
     setUploadingMain(true);
     const tid = toast.loading("Đang upload ảnh chính...");
@@ -275,6 +281,7 @@ export default function ProductModal({
   };
 
   const addThumbnailUrl = () => {
+    if (readOnly) return;
     const url = thumbnailUrlInput.trim();
     if (!url) return;
     setForm((f) => ({ ...f, thumbnails: [...(f.thumbnails || []), url] }));
@@ -282,6 +289,7 @@ export default function ProductModal({
   };
 
   const handleThumbsFiles = async (files) => {
+    if (readOnly) return;
     if (!files?.length) return;
     setUploadingThumbs(true);
     const tid = toast.loading("Đang upload thumbnails...");
@@ -310,6 +318,7 @@ export default function ProductModal({
   };
 
   const removeImage = (urlToRemove, isThumb = false) => {
+    if (readOnly) return;
     if (isThumb) {
       setForm((f) => ({
         ...f,
@@ -387,9 +396,20 @@ export default function ProductModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b pb-3">
-          <h3 className="text-xl font-bold text-gray-800">
-            {form.id ? "✏️ Sửa sản phẩm" : "➕ Thêm sản phẩm mới"}
-          </h3>
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">
+              {readOnly
+                ? "👁️ Xem chi tiết sản phẩm"
+                : form.id
+                ? "✏️ Sửa sản phẩm"
+                : "➕ Thêm sản phẩm mới"}
+            </h3>
+            {readOnly && (
+              <p className="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-3 py-1 inline-block">
+                Chế độ chỉ xem – bạn không có quyền chỉnh sửa sản phẩm này.
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -415,7 +435,7 @@ export default function ProductModal({
               onChange={(e) =>
                 setForm({ ...form, category: e.target.value, specs: {} })
               }
-              disabled={!canEditAll || categoriesLoading}
+              disabled={readOnly || categoriesLoading}
               required
             >
               <option value="">-- Chọn danh mục --</option>
@@ -436,7 +456,7 @@ export default function ProductModal({
                 className="w-full rounded-lg border px-3 py-2"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                disabled={!canEditAll}
+                disabled={readOnly}
                 required
               />
             </div>
@@ -448,7 +468,7 @@ export default function ProductModal({
                 className="w-full rounded-lg border px-3 py-2"
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                disabled={!canEditAll}
+                disabled={readOnly}
                 placeholder="Tự động tạo nếu để trống"
               />
             </div>
@@ -462,7 +482,7 @@ export default function ProductModal({
               className="w-full rounded-lg border px-3 py-2"
               value={form.brand}
               onChange={(e) => setForm({ ...form, brand: e.target.value })}
-              disabled={!canEditAll}
+              disabled={readOnly}
               placeholder="ASUS, MSI..."
             />
           </div>
@@ -482,7 +502,7 @@ export default function ProductModal({
                 }
                 min="0"
                 required
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -501,7 +521,7 @@ export default function ProductModal({
                 }
                 min="0"
                 max="99"
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -540,7 +560,7 @@ export default function ProductModal({
                   onChange={(e) =>
                     setForm({ ...form, promotionText: e.target.value })
                   }
-                  disabled={!canEditAll}
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -562,7 +582,7 @@ export default function ProductModal({
                       : form.studentDiscountAmount
                     : form.studentDiscountAmount
                 }
-                onFocus={() => setEditingStudentDiscount(true)}
+                onFocus={() => !readOnly && setEditingStudentDiscount(true)}
                 onBlur={(e) => {
                   setEditingStudentDiscount(false);
                   if (e.target.value === "") {
@@ -570,6 +590,7 @@ export default function ProductModal({
                   }
                 }}
                 onChange={(e) => {
+                  if (readOnly) return;
                   const v = e.target.value;
                   if (v === "") {
                     setForm((f) => ({ ...f, studentDiscountAmount: 0 }));
@@ -580,7 +601,7 @@ export default function ProductModal({
                     studentDiscountAmount: Number(v),
                   }));
                 }}
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
               <p className="text-[11px] text-gray-500 mt-1">
                 Số tiền này sẽ được trừ thêm khi tài khoản đã được xác thực sinh
@@ -602,12 +623,12 @@ export default function ProductModal({
                   onKeyDown={(e) =>
                     e.key === "Enter" && (e.preventDefault(), addGift())
                   }
-                  disabled={!canEditAll}
+                  disabled={readOnly}
                 />
                 <button
                   type="button"
                   onClick={addGift}
-                  disabled={!canEditAll}
+                  disabled={readOnly}
                   className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60"
                 >
                   Thêm
@@ -624,7 +645,7 @@ export default function ProductModal({
                     <button
                       type="button"
                       onClick={() => removeGift(idx)}
-                      disabled={!canEditAll}
+                      disabled={readOnly}
                       className="text-red-400 hover:text-red-600 disabled:opacity-60"
                     >
                       <CircleX size={14} />
@@ -653,13 +674,13 @@ export default function ProductModal({
                     placeholder="Tìm sản phẩm quà tặng theo tên..."
                     value={giftSearchInput}
                     onChange={(e) => setGiftSearchInput(e.target.value)}
-                    onFocus={() => setShowGiftDropdown(true)}
-                    disabled={!canEditAll}
+                    onFocus={() => !readOnly && setShowGiftDropdown(true)}
+                    disabled={readOnly}
                   />
                 </div>
 
                 {/* Dropdown list */}
-                {showGiftDropdown && canEditAll && (
+                {showGiftDropdown && !readOnly && (
                   <div
                     className="absolute z-10 mt-1 w-full rounded-lg border bg-white shadow-lg max-h-64 overflow-auto"
                     onMouseDown={(e) => e.preventDefault()}
@@ -748,7 +769,7 @@ export default function ProductModal({
                     <button
                       type="button"
                       onClick={() => removeGiftProduct(idx)}
-                      disabled={!canEditAll}
+                      disabled={readOnly}
                       className="text-red-400 hover:text-red-600 disabled:opacity-60"
                     >
                       <CircleX size={16} />
@@ -784,7 +805,7 @@ export default function ProductModal({
                 }
                 min="0"
                 required
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
             </div>
             <div>
@@ -799,7 +820,7 @@ export default function ProductModal({
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -831,12 +852,12 @@ export default function ProductModal({
                   placeholder="URL ảnh chính..."
                   value={mainUrlInput}
                   onChange={(e) => setMainUrlInput(e.target.value)}
-                  disabled={!canEditAll}
+                  disabled={readOnly}
                 />
                 <button
                   type="button"
                   onClick={addMainUrl}
-                  disabled={!canEditAll}
+                  disabled={readOnly}
                   className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-60"
                 >
                   Add URL
@@ -845,7 +866,7 @@ export default function ProductModal({
               <label
                 className={`flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed px-3 py-2 cursor-pointer hover:bg-blue-50 ${
                   uploadingMain ? "opacity-50" : ""
-                } ${!canEditAll ? "pointer-events-none opacity-60" : ""}`}
+                } ${readOnly ? "pointer-events-none opacity-60" : ""}`}
               >
                 <input
                   ref={mainFileRef}
@@ -853,7 +874,7 @@ export default function ProductModal({
                   accept="image/*"
                   hidden
                   onChange={(e) => handleMainFile(e.target.files[0])}
-                  disabled={uploadingMain || !canEditAll}
+                  disabled={uploadingMain || readOnly}
                 />
                 <Upload size={16} className="text-gray-500" />
                 <span className="text-sm text-gray-600">
@@ -874,12 +895,12 @@ export default function ProductModal({
                 placeholder="URL thumbnail..."
                 value={thumbnailUrlInput}
                 onChange={(e) => setThumbnailUrlInput(e.target.value)}
-                disabled={!canEditAll}
+                disabled={readOnly}
               />
               <button
                 type="button"
                 onClick={addThumbnailUrl}
-                disabled={!canEditAll}
+                disabled={readOnly}
                 className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-60"
               >
                 Add URL
@@ -887,7 +908,7 @@ export default function ProductModal({
               <label
                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 cursor-pointer ${
                   uploadingThumbs ? "opacity-50" : ""
-                } ${!canEditAll ? "pointer-events-none opacity-60" : ""}`}
+                } ${readOnly ? "pointer-events-none opacity-60" : ""}`}
               >
                 <input
                   ref={thumbsFileRef}
@@ -898,7 +919,7 @@ export default function ProductModal({
                   onChange={(e) =>
                     handleThumbsFiles(Array.from(e.target.files))
                   }
-                  disabled={uploadingThumbs || !canEditAll}
+                  disabled={uploadingThumbs || readOnly}
                 />
                 <Upload size={16} />
                 <span className="text-sm">Upload Nhiều</span>
@@ -938,7 +959,7 @@ export default function ProductModal({
             category={form.category}
             specs={form.specs}
             onChange={(specs) => setForm((f) => ({ ...f, specs }))}
-            disabled={!canEditAll}
+            disabled={readOnly}
           />
         </div>
 
@@ -952,7 +973,7 @@ export default function ProductModal({
               onChange={(e) =>
                 setForm({ ...form, isFeatured: e.target.checked })
               }
-              disabled={!canEditAll}
+              disabled={readOnly}
             />
             <span className="text-sm font-medium text-gray-700">
               Sản phẩm nổi bật (Hot)
@@ -964,17 +985,20 @@ export default function ProductModal({
               onClick={onClose}
               className="px-5 py-2 rounded-lg border hover:bg-gray-50"
             >
-              Hủy
+              {readOnly ? "Đóng" : "Hủy"}
             </button>
-            <button
-              type="submit"
-              disabled={uploadingMain || uploadingThumbs || !canEditAll}
-              className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-lg disabled:opacity-50"
-            >
-              {uploadingMain || uploadingThumbs
-                ? "Đang xử lý..."
-                : "Lưu Sản Phẩm"}
-            </button>
+            {/* ✅ Nút Lưu chỉ cho Admin / canEditAll */}
+            {canEditAll && (
+              <button
+                type="submit"
+                disabled={uploadingMain || uploadingThumbs}
+                className="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-lg disabled:opacity-50"
+              >
+                {uploadingMain || uploadingThumbs
+                  ? "Đang xử lý..."
+                  : "Lưu Sản Phẩm"}
+              </button>
+            )}
           </div>
         </div>
       </form>

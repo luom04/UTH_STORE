@@ -29,6 +29,23 @@ export default function OrderQuickViewModal({
 
   const items = Array.isArray(order.items) ? order.items : [];
 
+  const paymentMethodLabel = String(order.paymentMethod || "cod").toUpperCase();
+  const paymentStatus = order.paymentStatus || "unpaid";
+
+  const paymentStatusLabel =
+    paymentStatus === "paid"
+      ? "Đã thanh toán"
+      : paymentStatus === "pending"
+      ? "Chờ thanh toán"
+      : "Chưa thanh toán";
+
+  const paymentStatusClass =
+    paymentStatus === "paid"
+      ? "bg-emerald-50 text-emerald-700"
+      : paymentStatus === "pending"
+      ? "bg-amber-50 text-amber-700"
+      : "bg-rose-50 text-rose-700";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-3xl rounded-xl bg-white shadow-lg overflow-hidden">
@@ -82,12 +99,25 @@ export default function OrderQuickViewModal({
                     : ""}
                 </span>
               </div>
+              {/* Phương thức thanh toán */}
               <div className="text-gray-600 mt-2">
                 Thanh toán:{" "}
-                <span className="font-medium">
-                  {String(order.paymentMethod || "cod").toUpperCase()}
+                <span className="font-medium">{paymentMethodLabel}</span>
+              </div>
+
+              {/* Trạng thái thanh toán (paid / unpaid / pending) */}
+              <div className="mt-1 text-xs text-gray-600">
+                Trạng thái thanh toán:{" "}
+                <span
+                  className={
+                    "inline-flex items-center rounded-full px-2 py-0.5 font-medium " +
+                    paymentStatusClass
+                  }
+                >
+                  {paymentStatusLabel}
                 </span>
               </div>
+
               {order.note && (
                 <div className="text-gray-600 mt-1">Ghi chú: {order.note}</div>
               )}

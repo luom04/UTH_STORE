@@ -4,7 +4,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+// import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 
 import { AuthProvider } from "./contexts/AuthContext.jsx";
@@ -45,7 +45,7 @@ export default function App() {
           error: { iconTheme: { primary: "#ef4444", secondary: "#fff" } },
         }}
       />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
 
       <AnimatePresence>{isInitializing && <FullPageLoader />}</AnimatePresence>
 

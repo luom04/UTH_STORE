@@ -160,6 +160,91 @@ class PaymentController {
     }
   }
 
+  // ✅ Retry thanh toán VNPay cho đơn đã tạo nhưng chưa thanh toán
+  async retryVNPayPayment(req, res) {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user._id;
+
+      // 1) Lấy đơn hàng theo service, có kiểm tra chủ sở hữu
+      //    Dùng lại getOrderById để đảm bảo chỉ lấy được đơn của chính user
+      const order = await OrderService.getOrderById(orderId, userId);
+
+      // 2) Kiểm tra phương thức thanh toán
+      const method = (order.paymentMethod || "").toLowerCase();
+      if (method !== "vnpay") {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng này không sử dụng thanh toán VNPay",
+        });
+      }
+
+      // 3) Đơn đã thanh toán thì không cho retry
+      if (order.paymentStatus === "paid") {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng này đã được thanh toán",
+        });
+      }
+
+      // 4) Đơn đã huỷ / hết hạn thì không cho thanh toán lại
+      if (["canceled", "expired"].includes(order.status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Đơn hàng đã bị huỷ hoặc hết hạn",
+        });
+      }
+
+      const ipAddr = paymentService.getClientIp(req);
+
+      // Hàm bỏ dấu tiếng Việt (copy từ trên để dùng lại)
+      const removeVietnameseTones = (str) =>
+        str
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d")
+          .replace(/Đ/g, "D");
+
+      const orderInfo = removeVietnameseTones(
+        `Thanh toan don hang ${order.orderNumber || order._id}`
+      );
+
+      // 5) Gọi xuống service để tạo URL thanh toán mới
+      const paymentData = {
+        orderId: order._id.toString(),
+        amount: order.grandTotal,
+        orderInfo,
+        orderType: "billpayment",
+      };
+
+      const paymentResult = await paymentService.createVNPayPayment(
+        paymentData,
+        ipAddr
+      );
+
+      return res.json({
+        success: true,
+        message: "Tạo lại phiên thanh toán VNPay thành công",
+        paymentUrl: paymentResult.paymentUrl,
+        order: {
+          _id: order._id,
+          orderNumber: order.orderNumber,
+          totalAmount: order.grandTotal,
+          paymentStatus: order.paymentStatus,
+          status: order.status,
+        },
+      });
+    } catch (error) {
+      console.error("Error in retryVNPayPayment:", error);
+      // Nếu OrderService ném ApiError 404 thì vẫn nhảy vào đây → trả 500.
+      // Bạn có thể refine thêm nếu muốn bắt riêng.
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Lỗi tạo lại thanh toán VNPay",
+      });
+    }
+  }
+
   // ======================= MoMo: Tạo thanh toán =======================
   async createMoMoPayment(req, res) {
     try {

@@ -164,7 +164,8 @@ export default function ProductsPage() {
       });
     }
   };
-
+  const canEditProduct = isAdmin; // FE cho phép edit
+  const canViewProduct = isAdmin || isStaff; // Ai được mở modal xem chi tiết
   return (
     <div>
       {/* ✅ HEADER */}
@@ -324,7 +325,7 @@ export default function ProductsPage() {
         list={list}
         meta={meta}
         onEdit={
-          isAdmin
+          canViewProduct
             ? (p) => {
                 setEditingProduct(p);
                 setOpenProductModal(true);
@@ -363,7 +364,7 @@ export default function ProductsPage() {
       </div>
 
       {/* ✅ MODAL: Product - CHỈ ADMIN */}
-      {isAdmin && (
+      {canViewProduct && (
         <ProductModal
           open={openProductModal}
           onClose={() => {

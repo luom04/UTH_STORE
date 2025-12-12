@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { PATHS } from "../../../routes/paths.jsx";
 import ReviewModal from "../components/ReviewModal";
 import { useCancelOrder } from "../../../hooks/useOrders.js";
+import { useRetryVNPayPayment } from "../../../hooks/usePayment.js";
 import { TicketPercent } from "lucide-react";
 
 const STATUS_TEXT = {
@@ -68,10 +69,19 @@ export default function OrderCard({ o }) {
   const isCompleted = o.status === "completed";
 
   const cancelMut = useCancelOrder();
+  const retryVNPayMut = useRetryVNPayPayment();
 
   const [reviewItem, setReviewItem] = useState(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+
+  // 👇 Flag VNPay
+  const isVnpay = (o.paymentMethod || "").toLowerCase() === "vnpay";
+  const isVnpayPaid = isVnpay && o.paymentStatus === "paid";
+  const isVnpayUnpaid =
+    isVnpay &&
+    o.paymentStatus !== "paid" &&
+    !["canceled", "expired"].includes(o.status);
 
   const handleOpenReview = (it) => {
     if (!it.product) return;
@@ -136,6 +146,17 @@ export default function OrderCard({ o }) {
         >
           {statusLabel}
         </div>
+        {/* ✅ payment badge cho VNPay */}
+        {isVnpayPaid && (
+          <span className="rounded-full px-3 py-1 text-xs font-medium bg-emerald-50 text-emerald-700">
+            Đã thanh toán VNPay
+          </span>
+        )}
+        {isVnpayUnpaid && (
+          <span className="rounded-full px-3 py-1 text-xs font-medium bg-amber-50 text-amber-700">
+            Chưa thanh toán VNPay
+          </span>
+        )}
       </div>
 
       {/* Lý do hủy */}
@@ -263,6 +284,17 @@ export default function OrderCard({ o }) {
             >
               Hủy đơn hàng
             </button>
+            {/* ✅ Thanh toán lại VNPay */}
+            {isVnpayUnpaid && (
+              <button
+                type="button"
+                onClick={() => retryVNPayMut.mutate(o._id || o.id)}
+                disabled={retryVNPayMut.isPending}
+                className="rounded-full border px-4 py-1.5 text-xs font-semibold border-emerald-500 text-emerald-600 hover:bg-emerald-50 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {retryVNPayMut.isPending ? "Đang chuyển..." : "Thanh toán ngay"}
+              </button>
+            )}
           </div>
         )}
       </div>

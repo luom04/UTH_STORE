@@ -41,3 +41,24 @@ export const useCreateMoMoPayment = () => {
     },
   });
 };
+
+// ✅ Hook retry thanh toán VNPay cho order unpaid
+export const useRetryVNPayPayment = () => {
+  return useMutation({
+    mutationFn: (orderId) => paymentApi.retryVNPayPayment(orderId),
+    onSuccess: (data) => {
+      if (data?.paymentUrl) {
+        // redirect sang VNPay
+        window.location.href = data.paymentUrl;
+      } else {
+        toast.error("Không lấy được link thanh toán VNPay");
+      }
+    },
+    onError: (error) => {
+      const message =
+        error.response?.data?.message ||
+        "Không thể tạo lại phiên thanh toán VNPay";
+      toast.error(message);
+    },
+  });
+};

@@ -17,7 +17,7 @@ router.get("/", getPublicBanners);
 // Admin
 router.use(
   passport.authenticate("jwt", { session: false }),
-  requireRoles("admin")
+  requireRoles("admin", "staff")
 );
 router.get("/admin", getAdminBanners);
 router.post("/", createBanner);

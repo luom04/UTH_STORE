@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, LoaderCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import toast from "react-hot-toast"; // <-- ✅ Lỗi #2: Đã import toast
 
 // ✅ Sửa lại import: Thêm useResendVerification
 import { useLogin, useResendVerification } from "../../hooks/useAuth";
@@ -23,8 +22,6 @@ const errorVariants = {
 export default function Login() {
   const [showPw, setShowPw] = useState(false);
   const [showResend, setShowResend] = useState(false);
-  // const [resending, setResending] = useState(false); // <-- ✅ Xóa state này
-
   const [form, setForm] = useState({
     email: localStorage.getItem("remember_email") || "",
     password: "",

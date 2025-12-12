@@ -2,7 +2,7 @@
 
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { PATHS } from "./paths";
+import { PATHS, ADMIN_PATHS } from "./paths";
 
 function Fallback() {
   return (
@@ -14,12 +14,19 @@ function Fallback() {
 
 // ✅ Guest only (login/register)
 export function PublicOnlyRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) return <Fallback />;
-
   if (isAuthenticated) {
+    const role = String(user?.role || "").toUpperCase();
+
+    // Nếu là ADMIN hoặc STAFF -> luôn vào dashboard
+    if (role === "ADMIN" || role === "STAFF") {
+      return <Navigate to={ADMIN_PATHS.ADMIN_DASHBOARD} replace />;
+    }
+
+    // Còn lại (CUSTOMER, USER thường) -> về trang trước hoặc HOME
     const from = location.state?.from?.pathname || PATHS.HOME;
     return <Navigate to={from} replace />;
   }

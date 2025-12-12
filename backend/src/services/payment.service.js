@@ -67,7 +67,9 @@ class PaymentService {
     }
 
     const createDate = moment().format("YYYYMMDDHHmmss");
-    const vnp_TxnRef = orderId;
+    // const vnp_TxnRef = orderId;
+    // ✅ Tạo TxnRef duy nhất mỗi lần gọi (create + retry)
+    const vnp_TxnRef = `${orderId}_${Date.now()}`;
     const vnp_Amount = Math.round(amount * 100);
 
     if (!vnp_TxnRef || isNaN(vnp_Amount) || vnp_Amount <= 0) {
@@ -104,16 +106,11 @@ class PaymentService {
     const paymentUrl =
       vnp_Url + "?" + qs.stringify(vnp_Params, { encode: false });
 
-    console.log("====== VNPay DEBUG ======");
-    console.log("signData  :", signData);
-    console.log("signature :", signature);
-    console.log("final URL :", paymentUrl);
-    console.log("====== END VNPay DEBUG ======");
-
     return {
       success: true,
       paymentUrl,
-      orderId: vnp_TxnRef,
+      orderId, // Mongo _id
+      txnRef: vnp_TxnRef, // mã giao dịch gửi cho VNPay
     };
   }
 
@@ -134,14 +131,10 @@ class PaymentService {
       const hmac = crypto.createHmac("sha512", vnp_HashSecret);
       const signed = hmac.update(signData, "utf-8").digest("hex");
 
-      console.log("=== Verify Callback ===");
-      console.log("signData verify:", signData);
-      console.log("hash from vnp :", secureHash);
-      console.log("hash calc     :", signed);
-      console.log("match         :", secureHash === signed);
-
       if (secureHash === signed) {
-        const orderId = vnp_Params["vnp_TxnRef"];
+        const txnRef = vnp_Params["vnp_TxnRef"];
+        // const orderId = vnp_Params["vnp_TxnRef"];
+        const orderId = String(txnRef).split("_")[0];
         const responseCode = vnp_Params["vnp_ResponseCode"];
         const transactionNo = vnp_Params["vnp_TransactionNo"];
         const amount = vnp_Params["vnp_Amount"] / 100;
@@ -151,6 +144,7 @@ class PaymentService {
         return {
           isValid: true,
           orderId,
+          txnRef,
           responseCode,
           transactionNo,
           amount,

@@ -13,6 +13,13 @@ router.post(
   requireAuth, // Đổi thành requireAuth
   paymentController.createVNPayPayment
 );
+// ✅ Route retry thanh toán VNPay cho đơn đã tạo nhưng chưa thanh toán
+router.post(
+  "/vnpay/retry/:orderId",
+  passport.authenticate("jwt", { session: false }),
+  requireAuth,
+  paymentController.retryVNPayPayment
+);
 
 // Route xử lý return từ VNPay (không cần authenticate vì VNPay redirect)
 router.get("/vnpay/return", paymentController.vnpayReturn);

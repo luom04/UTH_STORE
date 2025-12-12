@@ -12,6 +12,51 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // ✅ Dùng model mới
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
+// 💡 Helper: phân loại intent câu hỏi để tối ưu truy vấn
+function detectIntent(rawQuery = "") {
+  const q = rawQuery.toLowerCase();
+
+  // Hỏi theo mã đơn hàng
+  if (/ord\d+/i.test(rawQuery)) return "order";
+
+  const productKeywords = [
+    "laptop",
+    "pc",
+    "máy tính",
+    "card",
+    "rtx",
+    "gtx",
+    "core i3",
+    "core i5",
+    "core i7",
+    "ultra",
+    "ssd",
+    "ram",
+  ];
+
+  const faqKeywords = [
+    "bảo hành",
+    "đổi trả",
+    "thanh toán",
+    "ship",
+    "giao hàng",
+    "vận chuyển",
+    "trả góp",
+    "chính sách",
+    "giờ mở cửa",
+  ];
+
+  const hasProduct = productKeywords.some((k) => q.includes(k));
+  const hasFaq = faqKeywords.some((k) => q.includes(k));
+
+  if (hasProduct && !hasFaq) return "product";
+  if (hasFaq && !hasProduct) return "faq";
+  if (hasProduct && hasFaq) return "mixed";
+
+  // Không rõ → cho là mixed để vẫn lấy nhẹ nhàng
+  return "mixed";
+}
+
 export class ChatService {
   /**
    * 🧠 RAG CORE: Tìm dữ liệu liên quan trong DB
@@ -20,175 +65,221 @@ export class ChatService {
    * - FAQ nội bộ (Câu hỏi thường gặp)
    */
   static async findContextData(query, userId) {
+    if (!query || !query.trim()) return "";
+
+    const intent = detectIntent(query);
     let contextText = "";
 
-    // ===============================
-    // 1) TÌM SẢN PHẨM LIÊN QUAN
-    // ===============================
+    // Chuẩn bị biến chứa kết quả
     let productResults = [];
+    let faqResults = [];
+    let orderInfo = null;
 
-    // 🔹 1.1. ƯU TIÊN: TEXT SEARCH (cần tạo text index trên collection products)
-    //
-    // Trong mongosh hoặc Atlas Shell chạy một lần:
-    // db.products.createIndex({ title: "text", slug: "text", description: "text" })
-    //
-    try {
-      productResults = await Product.find(
-        {
-          $text: { $search: query },
-          status: "active",
-        },
-        {
-          score: { $meta: "textScore" }, // lấy điểm match để sort
-        }
-      )
-        .sort({ score: { $meta: "textScore" } })
-        .select(
-          "title price priceSale stock isFeatured slug shortDescription description"
-        )
-        .limit(3)
-        .lean();
-    } catch (err) {
-      console.error("[ChatService] Product text search error:", err.message);
-    }
+    // ===============================
+    // 0) CHUẨN BỊ TASK CHẠY SONG SONG
+    // ===============================
+    const tasks = [];
 
-    // 🔹 1.2. FALLBACK: Nếu text search không ra gì → dùng regex theo keyword
-    if (!productResults || productResults.length === 0) {
-      const rawWords = query.toLowerCase().split(/\s+/).filter(Boolean);
-
-      const stopWords = [
-        "bạn",
-        "anh",
-        "chị",
-        "em",
-        "có",
-        "bán",
-        "mua",
-        "này",
-        "kia",
-        "không",
-        "ko",
-        "hông",
-        "bao",
-        "nhiêu",
-        "giá",
-        "con",
-        "cái",
-        "máy",
-        "laptop",
-      ];
-
-      const keyWords = rawWords.filter(
-        (w) => w.length >= 3 && !stopWords.includes(w)
-      );
-
-      // Lấy tối đa 5 từ khoá đầu (đủ để match: acer, aspire, a715, 59g, 78wg, rtx4060,…)
-      const topWords = keyWords.slice(0, 5);
-
-      const regexes = topWords.map((w) => {
-        const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        return new RegExp(escaped, "i");
-      });
-
-      if (regexes.length > 0) {
-        const orConds = regexes.map((re) => ({ title: re }));
-
-        try {
-          productResults = await Product.find({
-            $or: orConds,
-            status: "active",
-          })
-            .select(
-              "title price priceSale stock isFeatured slug shortDescription description"
+    // ---------- 1) PRODUCT ----------
+    if (intent === "product" || intent === "mixed") {
+      tasks.push(
+        (async () => {
+          try {
+            // ƯU TIÊN: TEXT SEARCH
+            let results = await Product.find(
+              {
+                $text: { $search: query },
+                status: "active",
+              },
+              {
+                score: { $meta: "textScore" },
+              }
             )
-            .limit(3)
-            .lean();
-        } catch (err) {
-          console.error(
-            "[ChatService] Product regex fallback error:",
-            err.message
-          );
-        }
-      }
+              .sort({ score: { $meta: "textScore" } })
+              .select(
+                "title price priceSale stock slug shortDescription description"
+              )
+              .limit(3)
+              .lean();
+
+            // FALLBACK: regex trên title nếu text search không ra gì
+            if (!results || results.length === 0) {
+              const rawWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+
+              const stopWords = [
+                "bạn",
+                "anh",
+                "chị",
+                "em",
+                "có",
+                "bán",
+                "mua",
+                "này",
+                "kia",
+                "không",
+                "ko",
+                "hông",
+                "bao",
+                "nhiêu",
+                "giá",
+                "con",
+                "cái",
+                "máy",
+                "laptop",
+              ];
+
+              const keyWords = rawWords.filter(
+                (w) => w.length >= 3 && !stopWords.includes(w)
+              );
+
+              const topWords = keyWords.slice(0, 5);
+
+              const regexes = topWords.map((w) => {
+                const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                return new RegExp(escaped, "i");
+              });
+
+              if (regexes.length > 0) {
+                const orConds = regexes.map((re) => ({ title: re }));
+                results = await Product.find({
+                  $or: orConds,
+                  status: "active",
+                })
+                  .select(
+                    "title price priceSale stock slug shortDescription description"
+                  )
+                  .limit(3)
+                  .lean();
+              }
+            }
+
+            productResults = results || [];
+          } catch (err) {
+            console.error("[ChatService] Product search error:", err.message);
+          }
+        })()
+      );
     }
 
-    // 🔹 1.3. BUILD CONTEXT CHO SẢN PHẨM
-    if (productResults && productResults.length > 0) {
+    // ---------- 2) ORDER ----------
+    // Chỉ tìm đơn nếu câu hỏi có mã ORDxxx *và* có userId (tránh lộ đơn người khác)
+    const orderMatch = query.match(/ORD\d+/i);
+    if (orderMatch && userId) {
+      tasks.push(
+        (async () => {
+          try {
+            const orderCode = orderMatch[0].toUpperCase();
+            const order = await Order.findOne({
+              orderNumber: orderCode,
+              user: userId, // 🔒 chỉ lấy đơn của đúng khách
+            })
+              .select("status grandTotal paymentStatus")
+              .lean();
+
+            if (order) {
+              orderInfo = {
+                code: orderCode,
+                status: order.status,
+                paymentStatus: order.paymentStatus,
+                grandTotal: order.grandTotal,
+              };
+            }
+          } catch (err) {
+            console.error("[ChatService] Order lookup error:", err.message);
+          }
+        })()
+      );
+    }
+
+    // ---------- 3) FAQ ----------
+    // FAQ thường dùng cho intent faq / order / mixed
+    if (["faq", "order", "mixed"].includes(intent)) {
+      tasks.push(
+        (async () => {
+          try {
+            const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+
+            const results = await Faq.find({
+              isActive: true,
+              $or: [
+                { question: { $regex: query, $options: "i" } },
+                { keywords: { $in: tokens } },
+              ],
+            })
+              .select("question answer")
+              .limit(3) // 3 câu là đủ, tránh text dài
+              .lean();
+
+            faqResults = results || [];
+          } catch (err) {
+            console.error("[ChatService] FAQ lookup error:", err.message);
+          }
+        })()
+      );
+    }
+
+    // ===============================
+    // 4) ĐỢI TẤT CẢ TASK XONG
+    // ===============================
+    if (tasks.length > 0) {
+      await Promise.all(tasks);
+    }
+
+    // ===============================
+    // 5) BUILD CONTEXT GỌN NHẤT CÓ THỂ
+    // ===============================
+
+    // 5.1. SẢN PHẨM
+    if (productResults.length > 0) {
       contextText += "\n[DỮ LIỆU KHO HÀNG]:\n";
 
       productResults.forEach((p) => {
-        const price = p.priceSale > 0 ? p.priceSale : p.price;
-        const stockStatus = p.stock > 0 ? `Còn hàng ` : "Hết hàng";
+        const rawPrice = p.priceSale > 0 ? p.priceSale : p.price;
+        const price =
+          typeof rawPrice === "number"
+            ? rawPrice.toLocaleString("vi-VN")
+            : rawPrice;
+        const stockStatus = p.stock > 0 ? "Còn hàng" : "Hết hàng";
 
-        // mô tả ngắn gọn, tránh đổ nguyên description dài
         const desc =
-          p.shortDescription ||
-          (p.description && p.description.slice(0, 200)) ||
-          "";
+          (p.shortDescription || p.description || "")
+            .toString()
+            .slice(0, 160) // cắt ngắn hơn để tiết kiệm token
+            .trim() || "";
 
         contextText += `- Sản phẩm: ${p.title}
-  Giá: ${price?.toLocaleString?.("vi-VN") || price} VND
+  Giá tham khảo: ${price} VND
   Tình trạng: ${stockStatus}
   Mô tả ngắn: ${desc}
 `;
       });
     }
 
-    // ===============================
-    // 2) THÔNG TIN ĐƠN HÀNG (ORDxxxx)
-    // ===============================
-    const orderMatch = query.match(/ORD\d+/i);
-    if (orderMatch) {
-      const orderCode = orderMatch[0].toUpperCase();
+    // 5.2. ĐƠN HÀNG
+    if (orderInfo) {
+      const total =
+        typeof orderInfo.grandTotal === "number"
+          ? orderInfo.grandTotal.toLocaleString("vi-VN")
+          : orderInfo.grandTotal;
 
-      try {
-        const order = await Order.findOne({ orderNumber: orderCode })
-          .select("status grandTotal paymentStatus items")
-          .lean();
-
-        if (order) {
-          contextText += `\n[THÔNG TIN ĐƠN HÀNG ${orderCode}]:\n`;
-          contextText += `- Trạng thái: ${order.status}\n`;
-          contextText += `- Thanh toán: ${order.paymentStatus}\n`;
-          contextText += `- Tổng tiền: ${
-            order.grandTotal?.toLocaleString?.("vi-VN") || order.grandTotal
-          } VND\n`;
-        }
-      } catch (err) {
-        console.error("[ChatService] Order lookup error:", err.message);
-      }
+      contextText += `\n[THÔNG TIN ĐƠN HÀNG ${orderInfo.code}]:\n`;
+      contextText += `- Trạng thái: ${orderInfo.status}\n`;
+      contextText += `- Thanh toán: ${orderInfo.paymentStatus}\n`;
+      contextText += `- Tổng tiền: ${total} VND\n`;
     }
 
-    // ===============================
-    // 3) FAQ NỘI BỘ (CÂU HỎI THƯỜNG GẶP)
-    // ===============================
-    try {
-      const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
-
-      const faqResults = await Faq.find({
-        isActive: true,
-        $or: [
-          { question: { $regex: query, $options: "i" } },
-          { keywords: { $in: tokens } },
-        ],
-      })
-        .select("question answer")
-        .limit(3)
-        .lean();
-
-      if (faqResults.length > 0) {
-        contextText += "\n[CÂU HỎI THƯỜNG GẶP]:\n";
-        faqResults.forEach((f, idx) => {
-          contextText += `Q${idx + 1}: ${f.question}\nA${idx + 1}: ${
-            f.answer
-          }\n`;
-        });
-      }
-    } catch (err) {
-      console.error("[ChatService] FAQ lookup error:", err.message);
+    // 5.3. FAQ
+    if (faqResults.length > 0) {
+      contextText += "\n[CÂU HỎI THƯỜNG GẶP]:\n";
+      faqResults.forEach((f, idx) => {
+        const answerShort = f.answer.toString().slice(0, 220).trim(); // cắt bớt cho ngắn
+        contextText += `Q${idx + 1}: ${f.question}\nA${
+          idx + 1
+        }: ${answerShort}\n`;
+      });
     }
 
-    return contextText;
+    return contextText.trim();
   }
 
   /**

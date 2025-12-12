@@ -27,7 +27,7 @@ export class ApiFeatures {
       this.query = this.query.or([
         { title: searchRegex },
         { slug: searchRegex },
-        { brand: searchRegex },
+        { category: searchRegex },
         { description: searchRegex },
       ]);
     }

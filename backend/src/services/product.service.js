@@ -67,9 +67,9 @@ export const ProductService = {
     }
 
     // Brand filter
-    if (queryParams.brand) {
-      filter.brand = queryParams.brand;
-    }
+    // if (queryParams.brand) {
+    //   filter.brand = queryParams.brand;
+    // }
 
     // Status filter
     if (queryParams.status) {
@@ -126,7 +126,7 @@ export const ProductService = {
     if (params.category) filter.category = params.category;
 
     // Brand filter
-    if (params.brand) filter.brand = params.brand;
+    // if (params.brand) filter.brand = params.brand;
 
     // 🔥 STATUS FILTER
     if (params.status) {
@@ -219,7 +219,8 @@ export const ProductService = {
       filter.$or = [
         { title: regex },
         { slug: regex },
-        { brand: regex },
+        // { brand: regex },
+        { category: regex },
         { description: regex },
       ];
     }

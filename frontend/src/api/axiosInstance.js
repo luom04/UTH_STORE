@@ -44,7 +44,7 @@ axiosInstance.interceptors.response.use(
       "/auth/refresh",
       "/auth/login",
       "/auth/register",
-      "/auth/logout", // ✅ QUAN TRỌNG: Thêm logout
+      "/auth/logout",
       "/auth/verify-email",
       "/auth/resend-verification",
       "/auth/request-password-reset",
