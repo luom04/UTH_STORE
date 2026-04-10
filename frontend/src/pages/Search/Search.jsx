@@ -1,7 +1,7 @@
 // src/pages/Search/Search.jsx
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import ProductCard from "../../components/product/ProductCard.jsx";
+import ProductCard from "../../components/Product/ProductCard.jsx";
 import { Loader2 } from "lucide-react";
 import { useProductSearch } from "../../hooks/useProductsPublic";
 import Button from "../../components/Button/Button.jsx";
