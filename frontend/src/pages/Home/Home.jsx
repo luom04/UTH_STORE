@@ -21,20 +21,23 @@ function RowBestSellers({ title, href, category, limit = 10 }) {
 export default function Home() {
   return (
     <>
-      {/* Sidebar + Banner */}
-      <section className="max-w-6xl mx-auto px-3 mt-3">
-        <div className="flex gap-4 items-stretch">
+      {/* Sidebar + Banner Section */}
+      <section className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-3 mt-2 sm:mt-3">
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-4 items-stretch">
+          {/* Sidebar: Chỉ hiện ở màn hình lớn (Desktop) */}
           <div className="hidden lg:block w-[20%] min-w-[220px]">
             <SidebarNav />
           </div>
-          <div className="flex-1">
+
+          {/* Banner: Chiếm 100% trên mobile/tablet, chiếm phần còn lại trên desktop */}
+          <div className="w-full lg:flex-1">
             <Banner />
           </div>
         </div>
       </section>
 
       {/* Rows sản phẩm (dữ liệu thật) */}
-      <div className="max-w-6xl mx-auto px-3 mt-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-3 mt-4 sm:mt-6 space-y-4 sm:space-y-6">
         <RowBestSellers
           title="PC bán chạy"
           href="/collections/pc"
@@ -60,7 +63,11 @@ export default function Home() {
           href="/collections/keyboard"
           category="keyboard"
         />
-        <CategoriesSection />
+
+        {/* Categories Section */}
+        <div className="pt-2">
+          <CategoriesSection />
+        </div>
       </div>
     </>
   );

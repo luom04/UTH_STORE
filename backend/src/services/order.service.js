@@ -609,6 +609,19 @@ export class OrderService {
     } else if (newStatus === "completed") {
       order.completedAt = new Date();
       order.paymentStatus = "paid";
+
+      // Logic tăng trường sold cho sản phẩm
+      for (const item of order.items) {
+        // Chỉ tăng sold cho sản phẩm chính, không tính quà tặng (nếu bạn muốn)
+        if (!item.isGift) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { sold: item.qty },
+          });
+          console.log(
+            `📈 Đã tăng sold cho sản phẩm: ${item.title} (+${item.qty})`
+          );
+        }
+      }
     } else if (newStatus === "canceled") {
       const now = new Date();
       const finalReason = (note && note.trim()) || "Đơn hàng đã được shop hủy";

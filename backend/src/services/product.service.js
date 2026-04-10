@@ -31,9 +31,6 @@ export const ProductService = {
       .limitFields()
       .paginate();
 
-    console.log("🔧 Query được build:", features.query.getQuery());
-    console.log("🔧 Query options:", features.query.getOptions());
-
     const [items, total] = await Promise.all([
       features.query.lean(),
       Product.countDocuments(this.buildFilterFromParams(queryParams)),
@@ -67,9 +64,9 @@ export const ProductService = {
     }
 
     // Brand filter
-    // if (queryParams.brand) {
-    //   filter.brand = queryParams.brand;
-    // }
+    if (queryParams.brand) {
+      filter.brand = queryParams.brand;
+    }
 
     // Status filter
     if (queryParams.status) {
@@ -126,13 +123,19 @@ export const ProductService = {
     if (params.category) filter.category = params.category;
 
     // Brand filter
-    // if (params.brand) filter.brand = params.brand;
-
+    if (params.brand) {
+      const brands = params.brand.split(",").map((b) => b.trim());
+      filter.brand = { $in: brands };
+    }
     // 🔥 STATUS FILTER
     if (params.status) {
       filter.status = params.status;
     } else {
       filter.status = "active";
+    }
+
+    if (params.rating) {
+      filter.rating = { $gte: Number(params.rating) };
     }
 
     // isFeatured filter
@@ -142,9 +145,9 @@ export const ProductService = {
 
     // Price range
     if (params.minPrice || params.maxPrice) {
-      filter.price = {};
-      if (params.minPrice) filter.price.$gte = Number(params.minPrice);
-      if (params.maxPrice) filter.price.$lte = Number(params.maxPrice);
+      filter.priceSale = {};
+      if (params.minPrice) filter.priceSale.$gte = Number(params.minPrice);
+      if (params.maxPrice) filter.priceSale.$lte = Number(params.maxPrice);
     }
 
     return filter;

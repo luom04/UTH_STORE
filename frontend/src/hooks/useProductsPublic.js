@@ -16,6 +16,7 @@ const mapProduct = (p) => ({
   // ✅ Map thêm rating cho chắc chắn
   rating: Number(p.rating) || 0,
   ratingCount: Number(p.ratingCount) || Number(p.reviewsCount) || 0,
+  priceSale: p.priceSale || p.price,
 });
 
 export function useCatalogProducts(params) {
@@ -25,12 +26,7 @@ export function useCatalogProducts(params) {
     keepPreviousData: true,
     staleTime: 30_000,
     select: (res) => {
-      const list = (res?.data || []).map((p) => ({
-        ...p,
-        id: p._id || p.id,
-        image:
-          Array.isArray(p.images) && p.images.length ? p.images[0] : undefined,
-      }));
+      const list = (res?.data || []).map(mapProduct);
       return {
         list,
         meta: res?.meta || { page: 1, limit: params?.limit || 20 },

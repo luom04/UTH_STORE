@@ -50,7 +50,7 @@ axiosInstance.interceptors.response.use(
       "/auth/request-password-reset",
       "/auth/reset-password",
       "/auth/google",
-      "/auth/me",
+      // "/auth/me",
     ];
 
     const isNoRetryRoute = noRetryRoutes.some((route) =>

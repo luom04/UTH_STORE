@@ -64,7 +64,6 @@ const UserSchema = new mongoose.Schema(
     },
     addresses: [AddressSchema],
     notes: [NoteSchema],
-    // ✅ THÊM 3 DÒNG NÀY:
     verificationToken: {
       type: String,
       select: false,

@@ -1,72 +1,62 @@
 // src/pages/Catalog/CatalogPage.jsx
 import { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import ProductCard from "../../components/product/ProductCard.jsx";
+import ProductCard from "../../components/Product/ProductCard.jsx";
 import CategoriesSection from "../../components/Categories/CategoriesSection.jsx";
 import { useCatalogProducts } from "../../hooks/useProductsPublic.js";
 import { useCategoryBySlug } from "../../hooks/useCategories.js";
 import Button from "../../components/Button/Button.jsx";
-import { Loader2 } from "lucide-react";
+import { Loader2, PackageOpen } from "lucide-react";
 
 const PAGE_SIZE = 20;
 
 export default function CatalogPage() {
   const { slug } = useParams();
   const [sp, setSp] = useSearchParams();
+
+  // 1. Lấy thông số phân trang và sắp xếp từ URL
   const page = Number(sp.get("page") || 1);
   const limit = Number(sp.get("limit") || PAGE_SIZE);
   const sort = sp.get("sort") || "-updatedAt";
 
   const categorySlug = decodeURIComponent(slug || "").toLowerCase();
-
-  // ✅ NEW: Local loading state
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Lấy thông tin danh mục (Banner, Name)
   const { category, isLoading: isLoadingCategory } =
     useCategoryBySlug(categorySlug);
 
+  // 2. Gọi API lấy danh sách sản phẩm (Đã gỡ bỏ rating)
   const { data, isLoading, isError, isFetching } = useCatalogProducts({
     page,
     limit,
     sort,
     category: categorySlug,
     fields:
-      "title,slug,images,price,priceSale,discountPercent,brand,category,specs,rating,ratingCount,reviewsCount",
+      "title,slug,images,price,priceSale,discountPercent,brand,category,rating,ratingCount,reviewsCount,sold,specs",
   });
 
   const list = data?.list || [];
   const meta = data?.meta || { page, limit };
 
+  // 3. Xử lý dữ liệu hiển thị
   const view = useMemo(() => {
-    return list.map((p) => {
-      return {
-        id: p.id || p._id,
-        slug: p.slug,
-        title: p.title,
-        image:
-          Array.isArray(p.images) && p.images.length
-            ? p.images[0]
-            : p.image || "/no-image.png",
-        images: p.images || [],
-        price: p.price,
-        priceSale: p.priceSale,
-        discountPercent: p.discountPercent || 0,
-        rating: p.rating || 0,
-        ratingCount: p.ratingCount || p.reviewsCount || 0,
-        specs: p.specs || {},
-        category: p.category,
-        brand: p.brand,
-      };
-    });
+    return list.map((p) => ({
+      ...p,
+      id: p.id || p._id,
+      image:
+        Array.isArray(p.images) && p.images.length
+          ? p.images[0]
+          : "/no-image.png",
+    }));
   }, [list]);
 
-  const canLoadMore = (meta?.limit ?? limit) <= list.length;
+  const canLoadMore = (meta?.total || 0) > list.length;
 
-  // ✅ NEW: Handle load more with delay
+  // 4. Hàm xử lý tải thêm sản phẩm
   const onLoadMore = async () => {
     setIsLoadingMore(true);
-
-    // Delay 500ms để hiển thị spinner
+    // Delay nhẹ để người dùng thấy hiệu ứng loading
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const next = new URLSearchParams(sp);
@@ -79,106 +69,134 @@ export default function CatalogPage() {
   const categoryDisplayName = category?.name || categorySlug;
 
   return (
-    <div className="overflow-x-hidden">
-      {/* Banner (full-bleed, nằm ngoài container để full screen) */}
+    <div className="bg-gray-50 min-h-screen pb-20 overflow-x-hidden">
+      {/* --- BANNER SECTION (Full-bleed) --- */}
       <div className="mb-6">
         {isLoadingCategory ? (
-          // Skeleton full-bleed
           <section className="relative ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] w-screen">
-            <div className="h-[28vh] min-h-[220px] max-h-[420px] bg-gray-100 animate-pulse" />
+            <div className="h-[28vh] min-h-[220px] max-h-[420px] bg-gray-200 animate-pulse" />
           </section>
         ) : category?.banner ? (
           <section className="relative ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] w-screen">
-            <div className="relative h-[28vh] min-h-[220px] max-h-[420px] sm:h-[36vh] md:h-[44vh] overflow-hidden">
-              {/* Lớp nền blur: fill toàn khung, object-cover để trông hiện đại */}
+            <div className="relative h-[28vh] min-h-[220px] max-h-[420px] sm:h-[36vh] md:h-[44vh] overflow-hidden bg-black">
+              {/* Lớp nền blur */}
               <img
                 src={category.banner}
                 alt=""
-                aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60"
-                referrerPolicy="no-referrer"
-                decoding="async"
               />
-              {/* Ảnh chính: object-contain để KHÔNG MẤT ẢNH */}
+              {/* Ảnh banner chính */}
               <img
                 src={category.banner}
                 alt={categoryDisplayName}
-                referrerPolicy="no-referrer"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
                 className="relative z-10 mx-auto h-full max-w-[95%] object-contain"
-                style={{ objectPosition: "center" }}
               />
-
-              {/* Chip số lượng sản phẩm (glassmorphism, nhẹ) */}
+              {/* Chip số lượng */}
               {!isLoading && (
-                <div className="absolute bottom-4 right-4 z-20">
-                  <span className="inline-block rounded-full bg-white/70 backdrop-blur-md px-3 py-1 text-sm font-medium text-gray-800 shadow">
-                    {list.length} sản phẩm
+                <div className="absolute bottom-4 right-8 z-20">
+                  <span className="inline-block rounded-full bg-white/80 backdrop-blur-md px-4 py-1.5 text-sm font-bold text-gray-800 shadow-sm">
+                    {meta?.total || 0} sản phẩm
                   </span>
                 </div>
               )}
             </div>
           </section>
         ) : (
-          // Fallback khi không có banner: dùng container như cũ
-          <div className="max-w-6xl mx-auto px-3">
-            <div className="rounded-2xl border bg-white p-5 shadow-sm">
-              <div className="text-xs text-gray-500">Danh mục</div>
-              <h1 className="text-2xl md:text-3xl font-bold capitalize">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="rounded-3xl border bg-white p-8 shadow-sm">
+              <div className="text-xs font-bold text-red-600 uppercase tracking-widest mb-2">
+                Danh mục
+              </div>
+              <h1 className="text-3xl font-black capitalize text-gray-900">
                 {categoryDisplayName}
               </h1>
-              {!isLoading && (
-                <p className="text-sm text-gray-600 mt-1">
-                  {list.length} sản phẩm
-                </p>
-              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-3">
+      {/* --- MAIN CONTENT --- */}
+      <div className="max-w-7xl mx-auto px-4 mt-8">
+        {/* Toolbar: Tiêu đề & Sắp xếp */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
+          <div className="hidden md:block">
+            <h2 className="text-lg font-bold text-gray-800 capitalize">
+              {categoryDisplayName}
+            </h2>
+            <p className="text-gray-400 text-xs mt-1 font-medium">
+              Đang hiển thị {list.length} kết quả
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between w-full md:w-auto gap-4">
+            <span className="text-sm text-gray-500 font-bold whitespace-nowrap">
+              Sắp xếp theo:
+            </span>
+            <select
+              value={sort}
+              onChange={(e) => {
+                const next = new URLSearchParams(sp);
+                next.set("sort", e.target.value);
+                next.set("page", "1");
+                setSp(next);
+              }}
+              className="bg-gray-50 border-none text-sm font-extrabold text-gray-700 py-2.5 px-5 rounded-xl focus:ring-2 focus:ring-red-100 cursor-pointer outline-none"
+            >
+              <option value="-updatedAt">Mới nhất</option>
+              <option value="priceSale">Giá: Thấp đến Cao</option>
+              <option value="-priceSale">Giá: Cao đến Thấp</option>
+              <option value="-sold">Bán chạy nhất</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Grid sản phẩm (Full width - 5 cột trên Desktop) */}
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 items-start">
-            {Array.from({ length: 10 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            {[...Array(10)].map((_, i) => (
               <div
                 key={i}
-                className="h-80 rounded-xl bg-gray-100 animate-pulse"
+                className="h-80 rounded-2xl bg-white animate-pulse border border-gray-100 shadow-sm"
               />
             ))}
           </div>
         ) : isError ? (
-          <div className="rounded-xl bg-white p-6 shadow-sm text-red-600">
-            ❌ Không tải được sản phẩm. Vui lòng thử lại.
+          <div className="bg-red-50 text-red-600 p-6 rounded-2xl text-center font-bold border border-red-100">
+            ❌ Không thể tải danh sách sản phẩm. Vui lòng thử lại sau.
           </div>
         ) : view.length === 0 ? (
-          <div className="rounded-xl bg-white p-8 shadow-sm text-center text-gray-600">
-            📦 Chưa có sản phẩm trong danh mục này.
+          <div className="bg-white rounded-3xl p-20 text-center border border-dashed border-gray-200">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <PackageOpen className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-gray-900 font-bold text-lg">
+              Danh mục hiện đang trống
+            </h3>
+            <p className="text-gray-400 text-sm mt-2">
+              Chúng tôi sẽ sớm cập nhật sản phẩm mới vào mục này.
+            </p>
           </div>
         ) : (
           <>
-            {/* Product Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
               {view.map((p) => (
                 <ProductCard key={p.slug || p.id} p={p} />
               ))}
             </div>
 
-            {/* Load More */}
+            {/* Nút Xem thêm */}
             {canLoadMore && (
-              <div className="mt-6 text-center">
+              <div className="mt-16 text-center">
                 <Button
                   variant="secondary"
                   onClick={onLoadMore}
                   disabled={isLoadingMore || isFetching}
-                  className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:text-red-600 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-16 py-4 rounded-full border-2 border-gray-200 hover:border-red-500 text-gray-700 hover:text-red-600 font-black transition-all shadow-sm active:scale-95 flex items-center gap-3 mx-auto"
                 >
                   {isLoadingMore || isFetching ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...
+                      <Loader2 className="w-5 h-5 animate-spin" /> Đang tải dữ
+                      liệu...
                     </>
                   ) : (
                     "Xem thêm sản phẩm"
@@ -190,8 +208,8 @@ export default function CatalogPage() {
         )}
       </div>
 
-      {/* Categories Section */}
-      <div className="max-w-6xl mx-auto px-3 mt-8">
+      {/* Categories gợi ý ở cuối trang */}
+      <div className="max-w-7xl mx-auto px-4 mt-24">
         <CategoriesSection />
       </div>
     </div>

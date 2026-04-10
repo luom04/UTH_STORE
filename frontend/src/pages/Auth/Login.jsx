@@ -58,7 +58,6 @@ export default function Login() {
         onError: (error) => {
           if (error.message?.includes("verify your email")) {
             setShowResend(true);
-            // toast.error đã được xử lý trong hook `useLogin`
           }
         },
       }
@@ -201,21 +200,6 @@ export default function Login() {
                 )}
               </AnimatePresence>
             </motion.button>
-
-            {/* Hiển thị lỗi */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  variants={errorVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="hidden"
-                  className="text-sm text-red-600 text-center"
-                >
-                  {error.message}
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Divider */}
             <div className="flex items-center gap-3 my-4">

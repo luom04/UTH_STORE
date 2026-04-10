@@ -23,9 +23,6 @@ export function useGetVerificationStatus(token) {
 
     // 4. Cache (Tuỳ chọn): Không lưu cache để user F5 là check lại từ đầu
     cacheTime: 0,
-
-    // ❌ BỎ onSuccess / onError ở đây
-    // 👉 Lý do: Để VerifyEmailPage tự quyết định hiển thị giao diện
   });
 }
 

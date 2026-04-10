@@ -96,7 +96,9 @@ export async function apiListProductsPublic({
   q = "",
   category = "",
   brand = "",
-  price,
+  minPrice,
+  maxPrice,
+  rating,
   status,
   fields,
 } = {}) {
@@ -105,8 +107,9 @@ export async function apiListProductsPublic({
   if (category) params.category = category;
   if (brand) params.brand = brand;
   if (status) params.status = status;
-  if (price?.min != null) params["price[gte]"] = price.min;
-  if (price?.max != null) params["price[lte]"] = price.max;
+  if (minPrice) params.minPrice = minPrice;
+  if (maxPrice) params.maxPrice = maxPrice;
+  if (rating) params.rating = rating;
 
   // 🆕 Đảm bảo luôn có rating & ratingCount nếu dùng fields
   if (fields) {

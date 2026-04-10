@@ -133,24 +133,14 @@ export default function ReportsPage() {
               </button>
 
               {/* 3. Xuất Danh mục */}
-              <button
+              {/* <button
                 onClick={() => exportFile("categories")}
                 disabled={isExporting}
                 className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2.5 py-1 font-medium text-[11px] text-gray-700 hover:bg-sky-50 hover:text-sky-600 disabled:opacity-50 transition-colors"
               >
                 <Download size={12} />
                 Danh mục
-              </button>
-
-              {/* 4. Xuất Thương hiệu */}
-              <button
-                onClick={() => exportFile("brands")}
-                disabled={isExporting}
-                className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white px-2.5 py-1 font-medium text-[11px] text-gray-700 hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50 transition-colors"
-              >
-                <Download size={12} />
-                Thương hiệu
-              </button>
+              </button> */}
             </div>
           </div>
         )}

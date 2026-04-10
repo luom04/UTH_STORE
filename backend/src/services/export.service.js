@@ -181,38 +181,20 @@ export class ExportService {
   /* ==========================================================================
      3. DANH MỤC
      ========================================================================== */
-  static async generateCategoryReport() {
-    const docs = await Category.find().lean();
-    const columns = [
-      { header: "Tên danh mục", key: "name", width: 30 },
-      { header: "Slug", key: "slug", width: 30 },
-      { header: "Trạng thái", key: "status", width: 15 },
-      { header: "Thứ tự", key: "order", width: 15 },
-    ];
-    const rows = docs.map((d) => ({
-      name: d.name,
-      slug: d.slug,
-      status: d.status === "active" ? "Hiển thị" : "Ẩn",
-      order: d.order ?? 0,
-    }));
-    return buildWorkbook({ sheetName: "Danh mục", columns, rows });
-  }
-
-  /* ==========================================================================
-     4. THƯƠNG HIỆU
-     ========================================================================== */
-  static async generateBrandReport() {
-    const docs = await Brand.find().lean();
-    const columns = [
-      { header: "Tên thương hiệu", key: "name", width: 30 },
-      { header: "Slug", key: "slug", width: 30 },
-      { header: "Trạng thái", key: "status", width: 15 },
-    ];
-    const rows = docs.map((d) => ({
-      name: d.name,
-      slug: d.slug,
-      status: d.status === "active" ? "Hiển thị" : "Ẩn",
-    }));
-    return buildWorkbook({ sheetName: "Thương hiệu", columns, rows });
-  }
+  // static async generateCategoryReport() {
+  //   const docs = await Category.find().lean();
+  //   const columns = [
+  //     { header: "Tên danh mục", key: "name", width: 30 },
+  //     { header: "Slug", key: "slug", width: 30 },
+  //     { header: "Trạng thái", key: "status", width: 15 },
+  //     { header: "Thứ tự", key: "order", width: 15 },
+  //   ];
+  //   const rows = docs.map((d) => ({
+  //     name: d.name,
+  //     slug: d.slug,
+  //     status: d.status === "active" ? "Hiển thị" : "Ẩn",
+  //     order: d.order ?? 0,
+  //   }));
+  //   return buildWorkbook({ sheetName: "Danh mục", columns, rows });
+  // }
 }
