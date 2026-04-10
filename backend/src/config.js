@@ -18,7 +18,10 @@ export const config = {
     // domain: process.env.COOKIE_DOMAIN,
     // sameSite: "lax",
     secure: true, // localhost hiện coi là secure context
-    domain: undefined, // DEV: bỏ domain
+    domain:
+      process.env.NODE_ENV === "production"
+        ? process.env.COOKIE_DOMAIN
+        : undefined,
     sameSite: "none",
   },
   resend: {
