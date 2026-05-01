@@ -45,7 +45,7 @@ export class OrderService {
       "Cart found?",
       !!cart,
       "items length:",
-      cart?.items?.length || 0
+      cart?.items?.length || 0,
     );
 
     if (!cart || !cart.items.length) {
@@ -66,7 +66,7 @@ export class OrderService {
     ) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Thông tin giao hàng không đầy đủ"
+        "Thông tin giao hàng không đầy đủ",
       );
     }
 
@@ -101,7 +101,7 @@ export class OrderService {
       if (product.stock < cartItem.qty) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `Sản phẩm "${product.title}" hết hàng`
+          `Sản phẩm "${product.title}" hết hàng`,
         );
       }
 
@@ -187,14 +187,14 @@ export class OrderService {
         if (!giftProduct) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            "Quà tặng không tồn tại trong kho"
+            "Quà tặng không tồn tại trong kho",
           );
         }
 
         if (giftProduct.stock < giftQty) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            `Quà tặng "${giftProduct.title}" đã hết hàng`
+            `Quà tặng "${giftProduct.title}" đã hết hàng`,
           );
         }
 
@@ -230,13 +230,13 @@ export class OrderService {
         const couponRes = await CouponService.applyCoupon(
           userId,
           finalCouponCode,
-          itemsTotalAfterStudent
+          itemsTotalAfterStudent,
         );
         discountAmount = couponRes.discountAmount;
       } catch (error) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `Lỗi Voucher: ${error.message}`
+          `Lỗi Voucher: ${error.message}`,
         );
       }
     }
@@ -244,7 +244,7 @@ export class OrderService {
     // 6. Grand total = tổng sau HSSV + ship - voucher
     const grandTotal = Math.max(
       0,
-      itemsTotalAfterStudent + shippingFee - discountAmount
+      itemsTotalAfterStudent + shippingFee - discountAmount,
     );
 
     // 7. Tạo mã đơn hàng
@@ -281,7 +281,7 @@ export class OrderService {
         {
           $inc: { usedCount: 1 },
           $push: { usedBy: userId },
-        }
+        },
       );
     }
 
@@ -301,37 +301,37 @@ export class OrderService {
     }
 
     //  Gửi email
-    if (user && user.email) {
-      try {
-        // ✅ CHỈ GỬI MAIL NGAY CHO COD
-        if (paymentMethod === "cod") {
-          await sendOrderConfirmationEmail(
-            {
-              orderNumber: order.orderNumber,
-              grandTotal: order.grandTotal,
-              paymentMethod: order.paymentMethod,
-              paymentStatus: order.paymentStatus,
-              items: order.items,
-              itemsTotal: order.itemsTotal, // sau HSSV
-              shippingFee: order.shippingFee,
+    // if (user && user.email) {
+    //   try {
+    //     // ✅ CHỈ GỬI MAIL NGAY CHO COD
+    //     if (paymentMethod === "cod") {
+    //       await sendOrderConfirmationEmail(
+    //         {
+    //           orderNumber: order.orderNumber,
+    //           grandTotal: order.grandTotal,
+    //           paymentMethod: order.paymentMethod,
+    //           paymentStatus: order.paymentStatus,
+    //           items: order.items,
+    //           itemsTotal: order.itemsTotal, // sau HSSV
+    //           shippingFee: order.shippingFee,
 
-              // ✅ thêm mới
-              couponCode: order.couponCode,
-              discountAmount: order.discountAmount,
-              studentDiscountAmount: order.studentDiscountAmount,
-            },
-            { email: user.email, name: user.name }
-          );
-        }
-      } catch (err) {
-        console.error("Lỗi gửi mail:", err.message);
-      }
-    }
+    //           // ✅ thêm mới
+    //           couponCode: order.couponCode,
+    //           discountAmount: order.discountAmount,
+    //           studentDiscountAmount: order.studentDiscountAmount,
+    //         },
+    //         { email: user.email, name: user.name }
+    //       );
+    //     }
+    //   } catch (err) {
+    //     console.error("Lỗi gửi mail:", err.message);
+    //   }
+    // }
 
     // 12. Xóa giỏ hàng
     await Cart.findOneAndUpdate(
       { user: userId },
-      { items: [], itemsTotal: 0, shippingFee: 0, grandTotal: 0 }
+      { items: [], itemsTotal: 0, shippingFee: 0, grandTotal: 0 },
     );
 
     await order.populate("user", "name email phone");
@@ -419,7 +419,7 @@ export class OrderService {
     if (order.status !== "pending") {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Không thể hủy đơn hàng đã được xử lý"
+        "Không thể hủy đơn hàng đã được xử lý",
       );
     }
 
@@ -444,7 +444,7 @@ export class OrderService {
         {
           $inc: { usedCount: -1 }, // Giảm số lượng đã dùng (tức là trả lại 1 lượt)
           $pull: { usedBy: order.user }, // Xóa user khỏi danh sách đã dùng
-        }
+        },
       );
     }
 
@@ -521,7 +521,7 @@ export class OrderService {
       Order.find(filter)
         // ✅ optional: giảm payload nhưng vẫn đủ data FE cần
         .select(
-          "orderNumber user shippingAddress items itemsTotal shippingFee couponCode discountAmount grandTotal paymentMethod paymentStatus status createdAt canceledAt cancelReason canceledByType studentDiscountAmount note"
+          "orderNumber user shippingAddress items itemsTotal shippingFee couponCode discountAmount grandTotal paymentMethod paymentStatus status createdAt canceledAt cancelReason canceledByType studentDiscountAmount note",
         )
         .populate("user", "name email phone")
         .sort({ createdAt: -1 })
@@ -548,7 +548,7 @@ export class OrderService {
     // populate user để có email, name (phục vụ gửi mail)
     const order = await Order.findById(orderId).populate(
       "user",
-      "name email phone"
+      "name email phone",
     );
 
     if (!order) {
@@ -595,7 +595,7 @@ export class OrderService {
     if (!validTransitions[current]?.includes(newStatus)) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        `Không thể chuyển từ ${current} sang ${newStatus}`
+        `Không thể chuyển từ ${current} sang ${newStatus}`,
       );
     }
 
@@ -618,7 +618,7 @@ export class OrderService {
             $inc: { sold: item.qty },
           });
           console.log(
-            `📈 Đã tăng sold cho sản phẩm: ${item.title} (+${item.qty})`
+            `📈 Đã tăng sold cho sản phẩm: ${item.title} (+${item.qty})`,
           );
         }
       }
@@ -670,21 +670,21 @@ export class OrderService {
               discountAmount: order.discountAmount,
               studentDiscountAmount: order.studentDiscountAmount,
             },
-            { email: user.email, name: user.name }
+            { email: user.email, name: user.name },
           );
 
           console.log(
-            `✅ [DEBUG] Đã gửi email 'đơn hàng đã giao' tới ${user.email}`
+            `✅ [DEBUG] Đã gửi email 'đơn hàng đã giao' tới ${user.email}`,
           );
         } catch (err) {
           console.error(
             "⚠️ [DEBUG] Gửi email 'đơn hàng đã giao' thất bại, nhưng không chặn flow:",
-            err.message
+            err.message,
           );
         }
       } else {
         console.warn(
-          "⚠️ [DEBUG] Không gửi được email 'đơn hàng đã giao' vì thiếu email user."
+          "⚠️ [DEBUG] Không gửi được email 'đơn hàng đã giao' vì thiếu email user.",
         );
       }
     }
@@ -763,7 +763,7 @@ export class OrderService {
     }
 
     const buckets = Object.values(map).sort((a, b) =>
-      a.date.localeCompare(b.date)
+      a.date.localeCompare(b.date),
     );
 
     // ===== TÍNH SUMMARY =====
