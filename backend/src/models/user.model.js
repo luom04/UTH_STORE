@@ -13,7 +13,7 @@ const AddressSchema = new mongoose.Schema(
     ward: { code: String, name: String },
     isDefault: { type: Boolean, default: false },
   },
-  { _id: true, timestamps: false }
+  { _id: true, timestamps: false },
 );
 
 // ✅ [CRM] Schema cho Ghi chú nội bộ
@@ -23,7 +23,7 @@ const NoteSchema = new mongoose.Schema(
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Người viết note (Admin/Staff)
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: true } // Tự tạo ID cho mỗi note để dễ xóa/sửa sau này
+  { _id: true }, // Tự tạo ID cho mỗi note để dễ xóa/sửa sau này
 );
 
 const UserSchema = new mongoose.Schema(
@@ -44,7 +44,7 @@ const UserSchema = new mongoose.Schema(
       set: (v) => String(v || ROLES.CUSTOMER).toLowerCase(),
       index: true,
     },
-    isEmailVerified: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: true },
 
     // 🆕 THÊM FIELD MỚI: Khóa/mở tài khoản
     isActive: {
@@ -92,7 +92,7 @@ const UserSchema = new mongoose.Schema(
       submittedAt: { type: Date }, // Ngày gửi yêu cầu
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 UserSchema.pre("save", async function (next) {

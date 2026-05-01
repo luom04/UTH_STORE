@@ -27,41 +27,16 @@ export const AuthService = {
       throw new ApiError(httpStatus.CONFLICT, "Email already exists");
     }
 
-    if (existing && !existing.isEmailVerified) {
-      // Gọi resend thay vì duplicate code
-      return this.resendVerificationEmail(email);
-    }
-
-    // 2. Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    console.log("🔑 Token generated at:", new Date().toISOString());
-    console.log("⏰ Token expires at:", verificationTokenExpires.toISOString());
-
     // 3. Create user
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password,
       role: "customer",
-      isEmailVerified: false,
+      isEmailVerified: true,
       verificationToken,
       verificationTokenExpires,
     });
-
-    // 4. Send verification email
-    try {
-      sendVerificationEmail({
-        to: user.email,
-        name: user.name,
-        token: verificationToken,
-      });
-      console.log(`✅ Verification email sent to ${user.email}`);
-    } catch (error) {
-      console.error("❌ Failed to send email:", error);
-    }
-
     // 5. Return
     return {
       user: {
