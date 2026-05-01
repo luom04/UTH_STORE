@@ -22,9 +22,9 @@ export async function sendEmail({ to, subject, html, text }) {
       },
     });
 
-    // Verify connection
-    await transporter.verify();
-    console.log("✅ SMTP connection verified");
+    // // Verify connection
+    // await transporter.verify();
+    // console.log("✅ SMTP connection verified");
 
     // Send email
     const info = await transporter.sendMail({
@@ -41,7 +41,7 @@ export async function sendEmail({ to, subject, html, text }) {
     console.error("❌ Email error:", error);
     throw new ApiError(
       httpStatus.INTERNAL_SERVER_ERROR,
-      `Failed to send email: ${error.message}`
+      `Failed to send email: ${error.message}`,
     );
   }
 }
@@ -271,14 +271,14 @@ export async function sendOrderConfirmationEmail(order, user) {
               <tr class="total-row">
                 <td colspan="2" style="text-align:right;">Tổng thanh toán:</td>
                 <td style="text-align:right;">${Number(
-                  grandTotal
+                  grandTotal,
                 ).toLocaleString()}đ</td>
               </tr>
             </tbody>
           </table>
 
           <p><strong>Phương thức thanh toán:</strong> ${String(
-            paymentMethod
+            paymentMethod,
           ).toUpperCase()}</p>
         </div>
         <div class="footer"><p>© 2025 UTH Store.</p></div>
@@ -442,14 +442,14 @@ export async function sendOrderDeliveredEmail(order, user) {
               <tr class="total-row">
                 <td colspan="2" style="text-align:right;">Tổng thanh toán:</td>
                 <td style="text-align:right;">${Number(
-                  grandTotal
+                  grandTotal,
                 ).toLocaleString()}đ</td>
               </tr>
             </tbody>
           </table>
 
           <p><strong>Phương thức thanh toán:</strong> ${String(
-            paymentMethod
+            paymentMethod,
           ).toUpperCase()}</p>
         </div>
         <div class="footer"><p>© 2025 UTH Store.</p></div>

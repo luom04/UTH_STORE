@@ -52,7 +52,7 @@ export const AuthService = {
 
     // 4. Send verification email
     try {
-      await sendVerificationEmail({
+      sendVerificationEmail({
         to: user.email,
         name: user.name,
         token: verificationToken,
@@ -87,7 +87,7 @@ export const AuthService = {
     if (!user) {
       throw new ApiError(
         httpStatus.NOT_FOUND,
-        "User not found or already verified"
+        "User not found or already verified",
       );
     }
 
@@ -111,7 +111,7 @@ export const AuthService = {
       console.error("❌ Failed to resend email:", error);
       throw new ApiError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to send email"
+        "Failed to send email",
       );
     }
 
@@ -119,8 +119,6 @@ export const AuthService = {
       message: "Verification email resent. Please check your inbox.",
     };
   },
-
-  //mới thay
   // backend/src/services/auth.service.js
   async verifyEmail(token) {
     // 1. Tìm user có token khớp và chưa hết hạn
@@ -132,7 +130,7 @@ export const AuthService = {
     if (!user) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Mã xác thực không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại email."
+        "Mã xác thực không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại email.",
       );
     }
 
@@ -154,7 +152,7 @@ export const AuthService = {
     if (!user) {
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "Thông tin đăng nhập không hợp lệ"
+        "Thông tin đăng nhập không hợp lệ",
       );
     }
 
@@ -162,7 +160,7 @@ export const AuthService = {
     if (!user.isActive) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ."
+        "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ bộ phận hỗ trợ.",
       );
     }
 
@@ -170,7 +168,7 @@ export const AuthService = {
     if (!user.password) {
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "Tài khoản này sử dụng thông tin đăng nhập Google. Vui lòng đăng nhập bằng Google."
+        "Tài khoản này sử dụng thông tin đăng nhập Google. Vui lòng đăng nhập bằng Google.",
       );
     }
 
@@ -179,7 +177,7 @@ export const AuthService = {
     if (!ok) {
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "Thông tin đăng nhập không hợp lệ"
+        "Thông tin đăng nhập không hợp lệ",
       );
     }
 
@@ -187,7 +185,7 @@ export const AuthService = {
     if (user.role === ROLES.CUSTOMER && !user.isEmailVerified) {
       throw new ApiError(
         httpStatus.FORBIDDEN,
-        "Vui lòng xác minh email của bạn trước khi đăng nhập. Kiểm tra hộp thư đến của bạn để biết liên kết xác minh"
+        "Vui lòng xác minh email của bạn trước khi đăng nhập. Kiểm tra hộp thư đến của bạn để biết liên kết xác minh",
       );
     }
 
@@ -253,12 +251,12 @@ export const AuthService = {
     if (!stored)
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "Token not recognized (possible reuse)"
+        "Token not recognized (possible reuse)",
       );
     if (stored.used || stored.revoked)
       throw new ApiError(
         httpStatus.UNAUTHORIZED,
-        "Token already used or revoked"
+        "Token already used or revoked",
       );
     if (stored.expiresAt < new Date())
       throw new ApiError(httpStatus.UNAUTHORIZED, "Refresh token expired");
@@ -315,7 +313,7 @@ export const AuthService = {
     // thu hồi tất cả refresh token hiện có (đảm bảo an toàn)
     await RefreshToken.updateMany(
       { user: user._id, revoked: false },
-      { $set: { revoked: true } }
+      { $set: { revoked: true } },
     );
 
     // xóa toàn bộ token reset cũ
@@ -405,7 +403,7 @@ export const AuthService = {
     if (!studentIdImage || !schoolName) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Vui lòng cung cấp ảnh thẻ và tên trường"
+        "Vui lòng cung cấp ảnh thẻ và tên trường",
       );
     }
 
@@ -433,7 +431,7 @@ export const AuthService = {
     if (!["verified", "rejected"].includes(status)) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "Trạng thái duyệt không hợp lệ"
+        "Trạng thái duyệt không hợp lệ",
       );
     }
 
