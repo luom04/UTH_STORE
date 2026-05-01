@@ -30,7 +30,7 @@ const processQueue = (error) => {
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => config,
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor
@@ -54,7 +54,7 @@ axiosInstance.interceptors.response.use(
     ];
 
     const isNoRetryRoute = noRetryRoutes.some((route) =>
-      originalRequest.url?.includes(route)
+      originalRequest.url?.includes(route),
     );
 
     // ✅ Reject ngay với no-retry routes
@@ -99,7 +99,7 @@ axiosInstance.interceptors.response.use(
         ];
 
         const isPublicPath = publicPaths.some((path) =>
-          currentPath.includes(path)
+          currentPath.includes(path),
         );
 
         const isAuthError =
@@ -108,7 +108,7 @@ axiosInstance.interceptors.response.use(
 
         if (!isPublicPath && isAuthError) {
           window.location.href = `${PATHS.LOGIN}?redirect=${encodeURIComponent(
-            currentPath
+            currentPath,
           )}`;
         }
 
@@ -132,14 +132,14 @@ axiosInstance.interceptors.response.use(
 
     if (error.request) {
       return Promise.reject(
-        new Error("Không thể kết nối đến server. Vui lòng kiểm tra mạng.")
+        new Error("Không thể kết nối đến server. Vui lòng kiểm tra mạng."),
       );
     }
 
     return Promise.reject(
-      new Error(error.message || "Có lỗi không xác định xảy ra")
+      new Error(error.message || "Có lỗi không xác định xảy ra"),
     );
-  }
+  },
 );
 
 export default axiosInstance;
