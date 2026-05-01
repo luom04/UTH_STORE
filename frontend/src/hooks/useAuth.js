@@ -33,7 +33,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: authApi.register,
     onSuccess: () => {
-      toast.success("Đăng ký thành công! Vui lòng kiểm tra Email để xác thực.");
+      toast.success("Đăng ký thành công");
       setTimeout(() => navigate(`${PATHS.LOGIN}`), 1500);
     },
     onError: (error) => {
@@ -60,14 +60,14 @@ export function useLogin() {
       if (status === 403) {
         if (message.includes("deactivated")) {
           toast.error(
-            " Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
+            " Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
           );
         } else if (message.includes("verify your email")) {
           toast.error(
             " Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn!",
             {
               duration: 5000,
-            }
+            },
           );
         } else {
           toast.error(message);
@@ -78,7 +78,7 @@ export function useLogin() {
       else if (status === 401) {
         if (message.includes("Google login")) {
           toast.error(
-            "🔐 Tài khoản này sử dụng đăng nhập Google. Vui lòng đăng nhập bằng Google."
+            "🔐 Tài khoản này sử dụng đăng nhập Google. Vui lòng đăng nhập bằng Google.",
           );
         } else {
           // ✅ MẶC ĐỊNH: Sai email/password
@@ -182,7 +182,7 @@ export function useResendVerification() {
     mutationFn: (data) => authApi.resendVerification(data), // (Xem Bước 2)
     onSuccess: () => {
       toast.success(
-        "Email xác nhận đã được gửi lại! Vui lòng kiểm tra hộp thư."
+        "Email xác nhận đã được gửi lại! Vui lòng kiểm tra hộp thư.",
       );
     },
     onError: (error) => {

@@ -34,8 +34,6 @@ export const AuthService = {
       password,
       role: "customer",
       isEmailVerified: true,
-      verificationToken,
-      verificationTokenExpires,
     });
     // 5. Return
     return {
